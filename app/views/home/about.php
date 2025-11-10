@@ -95,7 +95,7 @@ $hasTimelineContent = !empty($timelineGroups['experience']['items']) || !empty($
                         <?php $timelineIndex = 0; ?>
                         <?php foreach ($timelineGroups as $groupKey => $groupData): ?>
                             <?php if (empty($groupData['items'])) { continue; } ?>
-                            <div class="timeline-group" data-aos="fade-up" data-aos-delay="<?= (int)($timelineIndex * 50) ?>">
+                            <div class="timeline-group">
                                 <h5 class="timeline-group-title mb-4 text-primary">
                                     <?= htmlspecialchars($groupData['label']) ?>
                                 </h5>

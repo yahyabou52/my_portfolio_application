@@ -455,6 +455,9 @@ function setupSortableList(list) {
     }
 
     let referenceOrder = orderInput ? orderInput.value : initialOrder;
+    if (orderInput && typeof orderInput.dataset.sortableReference === 'undefined') {
+        orderInput.dataset.sortableReference = referenceOrder;
+    }
     let dragSource = null;
     let dragHandleEngaged = false;
     let dragHandleTarget = null;
@@ -594,6 +597,12 @@ function setupSortableList(list) {
 
         const serialized = serializeListOrder(list);
         orderInput.value = serialized;
+
+        if (orderInput && typeof orderInput.dataset.sortableReference === 'string') {
+            if (orderInput.dataset.sortableReference !== referenceOrder) {
+                referenceOrder = orderInput.dataset.sortableReference;
+            }
+        }
 
         if (saveButton) {
             saveButton.disabled = serialized === referenceOrder;
@@ -3932,6 +3941,777 @@ function initializeTimelineForm() {
 
     refreshMeta();
     updateType();
+}
+
+function initializeTimelineManager() {
+    const manager = document.querySelector('[data-timeline-manager]');
+    if (!manager || manager.dataset.timelineManagerBound === 'true') {
+        return;
+    }
+
+    manager.dataset.timelineManagerBound = 'true';
+
+    const list = manager.querySelector('[data-timeline-list]');
+    const feedback = manager.querySelector('[data-timeline-feedback]');
+    const visibleCountLabel = manager.querySelector('[data-timeline-visible-count]');
+    const emptyState = manager.querySelector('[data-timeline-empty]');
+    const resetButton = manager.querySelector('[data-timeline-reset-order]');
+    const filters = manager.querySelectorAll('[data-timeline-filter]');
+    const filterReset = manager.querySelector('[data-timeline-filter-reset]');
+    const orderForm = manager.querySelector('[data-timeline-order-form]');
+    const orderInput = orderForm ? orderForm.querySelector('#timelineOrderInput') : null;
+    const saveButton = orderForm ? orderForm.querySelector('#timelineOrderSubmit') : null;
+    const orderFeedback = orderForm ? orderForm.querySelector('[data-timeline-order-feedback]') : null;
+    const reorderUrl = manager.dataset.timelineReorderUrl || (orderForm ? orderForm.getAttribute('action') : '');
+
+    const previewTarget = manager.dataset.timelinePreviewTarget || '';
+    const previewRoot = previewTarget ? document.querySelector(previewTarget) : null;
+    const previewGroupsContainer = previewRoot ? previewRoot.querySelector('[data-timeline-preview-groups]') : null;
+    const previewEmpty = previewRoot ? previewRoot.querySelector('[data-timeline-preview-empty]') : null;
+    const groupTemplate = document.getElementById('timelinePreviewGroupTemplate');
+    const itemTemplate = document.getElementById('timelinePreviewItemTemplate');
+
+    let orderFeedbackTimer = null;
+
+    const state = {
+        items: parseTimelineItems(manager.dataset.timelineItems),
+        filter: {
+            status: 'all',
+            type: 'all'
+        },
+        originalOrder: orderInput ? (orderInput.defaultValue || orderInput.value || '') : (manager.dataset.timelineInitialOrder || ''),
+        busy: false
+    };
+
+    if (!state.originalOrder && list) {
+        state.originalOrder = serializeListOrder(list);
+    }
+
+    if (orderInput) {
+        if (!orderInput.value) {
+            orderInput.value = state.originalOrder;
+        }
+        orderInput.defaultValue = orderInput.defaultValue || state.originalOrder;
+        orderInput.dataset.sortableReference = state.originalOrder;
+    }
+
+    applyFilters();
+    renderPreview();
+    updateButtonsDisabled();
+
+    Array.prototype.forEach.call(filters, function (button) {
+        button.addEventListener('click', function () {
+            const key = button.dataset.timelineFilter || '';
+            if (!key) {
+                return;
+            }
+
+            const value = button.dataset.filterValue || 'all';
+
+            if (state.filter[key] === value) {
+                if (value !== 'all') {
+                    state.filter[key] = 'all';
+                    updateFilterButtons(key, 'all');
+                    applyFilters();
+                    renderPreview();
+                }
+                return;
+            }
+
+            state.filter[key] = value;
+            updateFilterButtons(key, value);
+            applyFilters();
+            renderPreview();
+        });
+    });
+
+    if (filterReset) {
+        filterReset.addEventListener('click', function () {
+            state.filter.status = 'all';
+            state.filter.type = 'all';
+            updateFilterButtons('status', 'all');
+            updateFilterButtons('type', 'all');
+            applyFilters();
+            renderPreview();
+        });
+    }
+
+    if (list) {
+        list.addEventListener('sortable:reordered', function () {
+            const ids = getCurrentOrderIds();
+            if (ids.length) {
+                state.items = reorderItems(state.items, ids);
+            }
+
+            renderPreview();
+            updateVisibleCount(getVisibleCount());
+            updateButtonsDisabled();
+        });
+
+        list.addEventListener('dragstart', function (event) {
+            if (filtersActive() || state.busy) {
+                event.preventDefault();
+                setFeedback('Clear filters to adjust the timeline order.', 'warning');
+            }
+        }, true);
+    }
+
+    if (resetButton) {
+        resetButton.addEventListener('click', function () {
+            if (!list || !state.originalOrder || state.busy || filtersActive()) {
+                return;
+            }
+
+            const ids = state.originalOrder.split(',').map(function (value) {
+                return value.trim();
+            }).filter(function (value) {
+                return value !== '';
+            });
+
+            if (!ids.length) {
+                return;
+            }
+
+            ids.forEach(function (id) {
+                const item = list.querySelector('[data-timeline-item-id="' + id + '"]');
+                if (item) {
+                    list.appendChild(item);
+                }
+            });
+
+            if (orderInput) {
+                orderInput.value = state.originalOrder;
+            }
+
+            list.dispatchEvent(new CustomEvent('sortable:reordered', { bubbles: true }));
+            setOrderFeedback('Order restored to the last saved state.', 'info');
+            if (saveButton) {
+                saveButton.disabled = true;
+            }
+        });
+    }
+
+    if (orderForm && orderInput) {
+        orderForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            if (state.busy) {
+                return;
+            }
+
+            if (filtersActive()) {
+                setFeedback('Clear filters to adjust the timeline order.', 'warning');
+                return;
+            }
+
+            const currentValue = orderInput.value || '';
+            const baseline = orderInput.defaultValue || '';
+
+            if (currentValue === baseline) {
+                setOrderFeedback('No order changes detected.', 'info');
+                return;
+            }
+
+            if (!reorderUrl) {
+                setOrderFeedback('Reorder endpoint is missing.', 'danger');
+                return;
+            }
+
+            submitOrder();
+        });
+    }
+
+    function parseTimelineItems(raw) {
+        if (!raw) {
+            return [];
+        }
+
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                return parsed.map(normalizeTimelineItem).filter(Boolean).sort(function (a, b) {
+                    if (a.sort_order !== b.sort_order) {
+                        return a.sort_order - b.sort_order;
+                    }
+                    return a.id - b.id;
+                });
+            }
+        } catch (error) {
+            console.warn('Failed to parse timeline dataset', error);
+        }
+
+        return [];
+    }
+
+    function normalizeTimelineItem(source) {
+        if (!source || typeof source !== 'object') {
+            return null;
+        }
+
+        const id = Number(source.id || source.timeline_id || 0);
+        if (!id) {
+            return null;
+        }
+
+        let tags = source.tags;
+        if (typeof tags === 'string') {
+            try {
+                const decoded = JSON.parse(tags);
+                tags = Array.isArray(decoded) ? decoded : tags.split(',');
+            } catch (error) {
+                tags = tags.split(',');
+            }
+        }
+
+        if (!Array.isArray(tags)) {
+            tags = [];
+        }
+
+        tags = tags.map(function (value) {
+            return String(value || '').trim();
+        }).filter(function (value) {
+            return value !== '';
+        }).slice(0, 10);
+
+        const organization = typeof source.organization === 'string'
+            ? source.organization
+            : (typeof source.company === 'string' ? source.company : '');
+
+        const dateRange = typeof source.date_range === 'string'
+            ? source.date_range
+            : (typeof source.date === 'string' ? source.date : '');
+
+        const description = typeof source.description === 'string' ? source.description : '';
+
+        const status = typeof source.status === 'string' ? source.status.toLowerCase() : 'draft';
+
+        return {
+            id: id,
+            title: typeof source.title === 'string' ? source.title : '',
+            organization: organization,
+            date_range: dateRange,
+            description: description,
+            tags: tags,
+            is_education: Number(source.is_education || 0) === 1,
+            status: status === 'published' ? 'published' : 'draft',
+            sort_order: Number(source.sort_order || 0)
+        };
+    }
+
+    function applyFilters() {
+        if (!list) {
+            updateVisibleCount(state.items.length);
+            return;
+        }
+
+        const items = list.querySelectorAll('[data-timeline-item-id]');
+        let visible = 0;
+
+        items.forEach(function (item) {
+            const status = (item.dataset.timelineStatus || 'draft').toLowerCase();
+            const type = item.dataset.timelineType || 'experience';
+            const matchesStatus = state.filter.status === 'all' || state.filter.status === status;
+            const matchesType = state.filter.type === 'all' || state.filter.type === type;
+            const shouldShow = matchesStatus && matchesType;
+
+            item.classList.toggle('d-none', !shouldShow);
+
+            if (shouldShow) {
+                visible += 1;
+            }
+        });
+
+        if (list) {
+            list.classList.toggle('d-none', visible === 0);
+        }
+
+        if (emptyState) {
+            emptyState.classList.toggle('d-none', visible > 0);
+        }
+
+        updateVisibleCount(visible);
+        updateButtonsDisabled();
+    }
+
+    function updateVisibleCount(visible) {
+        if (!visibleCountLabel) {
+            return;
+        }
+
+        const total = state.items.length;
+        const label = visible === 1 ? 'entry' : 'entries';
+        visibleCountLabel.textContent = 'Showing ' + visible + ' of ' + total + ' ' + label;
+    }
+
+    function filtersActive() {
+        return state.filter.status !== 'all' || state.filter.type !== 'all';
+    }
+
+    function updateButtonsDisabled() {
+        const filtered = filtersActive();
+
+        if (resetButton) {
+            resetButton.disabled = filtered || state.busy || !state.originalOrder;
+        }
+
+        if (saveButton) {
+            if (filtered || state.busy) {
+                saveButton.disabled = true;
+            } else if (orderInput) {
+                const baseline = orderInput.dataset.sortableReference || orderInput.defaultValue || '';
+                saveButton.disabled = (orderInput.value || '') === baseline;
+            }
+        }
+
+        if (filtered) {
+            setFeedback('Reordering is disabled while filters are applied. Clear filters to adjust ordering.', 'info');
+        } else {
+            setFeedback('', '');
+        }
+    }
+
+    function updateFilterButtons(key, activeValue) {
+        Array.prototype.forEach.call(filters, function (button) {
+            if (button.dataset.timelineFilter !== key) {
+                return;
+            }
+
+            const value = button.dataset.filterValue || 'all';
+            if (activeValue === 'all') {
+                button.classList.toggle('active', value === 'all');
+            } else {
+                button.classList.toggle('active', value === activeValue);
+            }
+        });
+    }
+
+    function getCurrentOrderIds() {
+        if (!list) {
+            return [];
+        }
+
+        const serialized = serializeListOrder(list);
+        if (!serialized) {
+            return [];
+        }
+
+        return serialized.split(',').map(function (value) {
+            return Number(value.trim());
+        }).filter(function (value) {
+            return value > 0;
+        });
+    }
+
+    function reorderItems(items, ids) {
+        if (!ids.length) {
+            return items.slice();
+        }
+
+        const lookup = new Map();
+        items.forEach(function (item) {
+            lookup.set(String(item.id), item);
+        });
+
+        const ordered = [];
+
+        ids.forEach(function (id) {
+            const key = String(id);
+            if (lookup.has(key)) {
+                ordered.push(lookup.get(key));
+                lookup.delete(key);
+            }
+        });
+
+        lookup.forEach(function (item) {
+            ordered.push(item);
+        });
+
+        return ordered;
+    }
+
+    function renderPreview() {
+        if (!previewRoot) {
+            return;
+        }
+
+        if (!previewGroupsContainer) {
+            return;
+        }
+
+        const published = state.items.filter(function (item) {
+            return item.status === 'published';
+        });
+
+        const source = published.length ? published : state.items.slice();
+        const grouped = groupItemsByType(source);
+
+        previewGroupsContainer.innerHTML = '';
+
+        let renderedCount = 0;
+
+        Object.keys(grouped).forEach(function (key) {
+            const items = grouped[key];
+            if (!items.length) {
+                return;
+            }
+
+            renderedCount += items.length;
+            previewGroupsContainer.appendChild(buildPreviewGroup(key, items));
+        });
+
+        if (previewEmpty) {
+            previewEmpty.classList.toggle('d-none', renderedCount > 0);
+        }
+    }
+
+    function groupItemsByType(items) {
+        const groups = {
+            experience: [],
+            education: []
+        };
+
+        items.forEach(function (item) {
+            const key = item.is_education ? 'education' : 'experience';
+            groups[key].push(item);
+        });
+
+        return groups;
+    }
+
+    function buildPreviewGroup(key, items) {
+        const label = key === 'education' ? 'Education' : 'Experience';
+        let element;
+
+        if (groupTemplate && groupTemplate.content && groupTemplate.content.firstElementChild) {
+            element = groupTemplate.content.firstElementChild.cloneNode(true);
+            const title = element.querySelector('[data-preview-group-title]');
+            const count = element.querySelector('[data-preview-group-count]');
+            const stack = element.querySelector('[data-preview-group-stack]');
+
+            if (title) {
+                title.textContent = label;
+            }
+            if (count) {
+                count.textContent = items.length + ' ' + (items.length === 1 ? 'entry' : 'entries');
+            }
+            if (stack) {
+                stack.innerHTML = '';
+                items.forEach(function (item, index) {
+                    stack.appendChild(buildPreviewItem(item, index));
+                });
+            }
+        } else {
+            element = document.createElement('section');
+            element.className = 'timeline-preview-group mb-4';
+
+            const header = document.createElement('div');
+            header.className = 'd-flex justify-content-between align-items-center mb-2';
+
+            const title = document.createElement('h6');
+            title.className = 'mb-0';
+            title.textContent = label;
+
+            const count = document.createElement('span');
+            count.className = 'badge bg-light text-muted';
+            count.textContent = items.length + ' ' + (items.length === 1 ? 'entry' : 'entries');
+
+            header.appendChild(title);
+            header.appendChild(count);
+            element.appendChild(header);
+
+            const stack = document.createElement('div');
+            stack.className = 'timeline-preview-stack';
+            items.forEach(function (item, index) {
+                stack.appendChild(buildPreviewItem(item, index));
+            });
+            element.appendChild(stack);
+        }
+
+        return element;
+    }
+
+    function buildPreviewItem(item, index) {
+        let element;
+
+        if (itemTemplate && itemTemplate.content && itemTemplate.content.firstElementChild) {
+            element = itemTemplate.content.firstElementChild.cloneNode(true);
+
+            const marker = element.querySelector('[data-preview-item-marker]');
+            const title = element.querySelector('[data-preview-item-title]');
+            const meta = element.querySelector('[data-preview-item-meta]');
+            const badge = element.querySelector('[data-preview-item-badge]');
+            const description = element.querySelector('[data-preview-item-description]');
+            const tagsContainer = element.querySelector('[data-preview-item-tags]');
+
+            if (marker) {
+                marker.classList.toggle('timeline-preview-marker-education', !!item.is_education);
+            }
+            if (title) {
+                title.textContent = item.title || '';
+            }
+            if (meta) {
+                const parts = [];
+                if (item.organization) {
+                    parts.push(item.organization);
+                }
+                if (item.date_range) {
+                    parts.push(item.date_range);
+                }
+                meta.textContent = parts.join(' | ');
+            }
+            if (badge) {
+                badge.textContent = item.is_education ? 'Education' : 'Experience';
+            }
+            if (description) {
+                const text = truncateText(item.description, 140);
+                description.textContent = text;
+                description.classList.toggle('d-none', text === '');
+            }
+            if (tagsContainer) {
+                tagsContainer.innerHTML = '';
+                item.tags.slice(0, 4).forEach(function (tag) {
+                    const badgeElement = document.createElement('span');
+                    badgeElement.className = 'badge bg-primary-subtle text-primary';
+                    badgeElement.textContent = tag;
+                    tagsContainer.appendChild(badgeElement);
+                });
+            }
+        } else {
+            element = document.createElement('div');
+            element.className = 'timeline-preview-item';
+            if (index > 0) {
+                element.classList.add('mt-3');
+            }
+
+            const marker = document.createElement('div');
+            marker.className = 'timeline-preview-marker';
+            if (item.is_education) {
+                marker.classList.add('timeline-preview-marker-education');
+            }
+            element.appendChild(marker);
+
+            const content = document.createElement('div');
+            content.className = 'timeline-preview-content';
+            element.appendChild(content);
+
+            const header = document.createElement('div');
+            header.className = 'd-flex justify-content-between align-items-start gap-2';
+            content.appendChild(header);
+
+            const textBlock = document.createElement('div');
+            header.appendChild(textBlock);
+
+            const title = document.createElement('h6');
+            title.className = 'mb-1';
+            title.textContent = item.title || '';
+            textBlock.appendChild(title);
+
+            const meta = document.createElement('div');
+            meta.className = 'text-muted small';
+            const parts = [];
+            if (item.organization) {
+                parts.push(item.organization);
+            }
+            if (item.date_range) {
+                parts.push(item.date_range);
+            }
+            meta.textContent = parts.join(' | ');
+            textBlock.appendChild(meta);
+
+            const badge = document.createElement('span');
+            badge.className = 'badge rounded-pill bg-light text-muted';
+            badge.textContent = item.is_education ? 'Education' : 'Experience';
+            header.appendChild(badge);
+
+            if (item.description) {
+                const paragraph = document.createElement('p');
+                paragraph.className = 'small text-secondary mt-2 mb-2';
+                paragraph.textContent = truncateText(item.description, 140);
+                content.appendChild(paragraph);
+            }
+
+            if (item.tags.length) {
+                const tagContainer = document.createElement('div');
+                tagContainer.className = 'd-flex flex-wrap gap-2';
+                item.tags.slice(0, 4).forEach(function (tag) {
+                    const badgeElement = document.createElement('span');
+                    badgeElement.className = 'badge bg-primary-subtle text-primary';
+                    badgeElement.textContent = tag;
+                    tagContainer.appendChild(badgeElement);
+                });
+                content.appendChild(tagContainer);
+            }
+        }
+
+        return element;
+    }
+
+    function truncateText(value, limit) {
+        if (typeof value !== 'string') {
+            return '';
+        }
+
+        const trimmed = value.trim();
+        if (trimmed === '') {
+            return '';
+        }
+
+        if (trimmed.length <= limit) {
+            return trimmed;
+        }
+
+        return trimmed.slice(0, limit).trimEnd() + '...';
+    }
+
+    function setFeedback(message, tone) {
+        if (!feedback) {
+            return;
+        }
+
+        feedback.classList.remove('d-none', 'alert-info', 'alert-warning', 'alert-danger', 'alert-success');
+
+        if (!message) {
+            feedback.textContent = '';
+            feedback.classList.add('d-none', 'alert-info');
+            return;
+        }
+
+        let alertClass = 'alert-info';
+        if (tone === 'warning') {
+            alertClass = 'alert-warning';
+        } else if (tone === 'danger') {
+            alertClass = 'alert-danger';
+        } else if (tone === 'success') {
+            alertClass = 'alert-success';
+        }
+
+        feedback.classList.add(alertClass);
+        feedback.textContent = message;
+    }
+
+    function setOrderFeedback(message, tone) {
+        if (!orderFeedback) {
+            return;
+        }
+
+        if (orderFeedbackTimer) {
+            window.clearTimeout(orderFeedbackTimer);
+            orderFeedbackTimer = null;
+        }
+
+        orderFeedback.classList.remove('text-success', 'text-danger', 'text-warning', 'text-muted');
+
+        if (!message) {
+            orderFeedback.textContent = '';
+            return;
+        }
+
+        let className = 'text-muted';
+        if (tone === 'success') {
+            className = 'text-success';
+        } else if (tone === 'danger') {
+            className = 'text-danger';
+        } else if (tone === 'warning') {
+            className = 'text-warning';
+        }
+
+        orderFeedback.classList.add(className);
+        orderFeedback.textContent = message;
+
+        if (tone === 'success') {
+            orderFeedbackTimer = window.setTimeout(function () {
+                orderFeedback.textContent = '';
+                orderFeedback.classList.remove('text-success');
+                orderFeedbackTimer = null;
+            }, 2500);
+        }
+    }
+
+    function getVisibleCount() {
+        if (!list) {
+            return state.items.length;
+        }
+
+        let count = 0;
+        const items = list.querySelectorAll('[data-timeline-item-id]');
+        items.forEach(function (item) {
+            if (!item.classList.contains('d-none')) {
+                count += 1;
+            }
+        });
+        return count;
+    }
+
+    function submitOrder() {
+        if (!orderForm || !orderInput) {
+            return;
+        }
+
+        const formData = new FormData(orderForm);
+
+        state.busy = true;
+        setButtonLoading(saveButton, true);
+        setOrderFeedback('Saving order...', 'muted');
+
+        fetch(reorderUrl, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin'
+        })
+            .then(function (response) {
+                return response.json()
+                    .catch(function () {
+                        throw buildTimelineError('Unexpected response received while saving order.', response.status);
+                    })
+                    .then(function (payload) {
+                        if (!response.ok || !payload || payload.success === false) {
+                            const message = payload && payload.message ? payload.message : 'Failed to update timeline order.';
+                            throw buildTimelineError(message, response.status, payload);
+                        }
+                        return payload;
+                    });
+            })
+            .then(function (payload) {
+                const message = payload && payload.message ? payload.message : 'Timeline order updated successfully.';
+                const ids = Array.isArray(payload && payload.order) ? payload.order : getCurrentOrderIds();
+                if (ids.length) {
+                    state.items = reorderItems(state.items, ids);
+                }
+
+                orderInput.defaultValue = orderInput.value;
+                orderInput.dataset.sortableReference = orderInput.value;
+                state.originalOrder = orderInput.value;
+
+                if (saveButton) {
+                    saveButton.disabled = true;
+                }
+
+                setOrderFeedback(message, 'success');
+                showToast(message, 'success', true);
+                renderPreview();
+            })
+            .catch(function (error) {
+                const message = error && error.message ? error.message : 'Failed to update timeline order.';
+                setOrderFeedback(message, 'danger');
+                showToast(message, 'danger', false);
+            })
+            .finally(function () {
+                state.busy = false;
+                setButtonLoading(saveButton, false);
+                updateButtonsDisabled();
+            });
+    }
+
+    function buildTimelineError(message, status, payload) {
+        const error = new Error(message);
+        error.status = status;
+        error.payload = payload;
+        return error;
+    }
 }
 
 function initializeHomePageCtaManager() {

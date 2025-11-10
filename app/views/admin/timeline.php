@@ -240,13 +240,11 @@ foreach ($previewGroups as $groupItems) {
                     </h5>
                 </div>
                 <div class="card-body" id="timelinePreviewRoot" data-timeline-preview-root>
-                    <?php if ($hasPreviewGroups): ?>
-                        <div data-timeline-preview-groups>
+                    <div data-timeline-preview-groups>
+                        <?php if ($hasPreviewGroups): ?>
                             <?php foreach (['experience' => 'Experience', 'education' => 'Education'] as $groupKey => $groupLabel): ?>
                                 <?php $groupItems = $previewGroups[$groupKey] ?? []; ?>
-                                <?php if (empty($groupItems)): ?>
-                                    <?php continue; ?>
-                                <?php endif; ?>
+                                <?php if (empty($groupItems)) { continue; } ?>
                                 <section class="timeline-preview-group mb-4" data-timeline-preview-group="<?= $groupKey ?>">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         <h6 class="mb-0"><?= $groupLabel ?></h6>
@@ -302,13 +300,12 @@ foreach ($previewGroups as $groupItems) {
                                     </div>
                                 </section>
                             <?php endforeach; ?>
-                        </div>
-                    <?php else: ?>
-                        <div class="text-center py-4 text-muted" data-timeline-preview-empty>
-                            <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
-                            <p class="mb-0">Published entries will appear here as they would on the About page.</p>
-                        </div>
-                    <?php endif; ?>
+                        <?php endif; ?>
+                    </div>
+                    <div class="text-center py-4 text-muted<?= $hasPreviewGroups ? ' d-none' : '' ?>" data-timeline-preview-empty>
+                        <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
+                        <p class="mb-0">Published entries will appear here as they would on the About page.</p>
+                    </div>
                     <div class="mt-3">
                         <small class="text-muted d-block">
                             <i class="bi bi-lightning-charge me-1"></i>
@@ -364,20 +361,3 @@ foreach ($previewGroups as $groupItems) {
         </div>
     </div>
 </template>
-                    <h5 class="card-title mb-0">
-                        <i class="bi bi-lightbulb me-2"></i>
-                        Timeline Tips
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <ul class="list-unstyled small mb-0">
-                        <li class="mb-2"><strong>Lead with impact:</strong> Share the outcomes you drove, not just responsibilities.</li>
-                        <li class="mb-2"><strong>Keep it crisp:</strong> Aim for 2-3 sentences per entry for easy scanning.</li>
-                        <li class="mb-2"><strong>Tag wisely:</strong> Use tags to highlight the skills or focus areas of each milestone.</li>
-                        <li class="mb-0"><strong>Order matters:</strong> The list displays chronologically based on this ordering.</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
