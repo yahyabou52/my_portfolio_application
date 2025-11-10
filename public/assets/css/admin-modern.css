@@ -400,6 +400,154 @@ body {
     color: #166534;
 }
 
+/* Services Manager */
+.list-group-item.services-manager-item {
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.list-group-item.services-manager-item:hover {
+    border-color: #6366f1;
+    box-shadow: 0 12px 24px -12px rgba(99, 102, 241, 0.45);
+}
+
+.services-manager-item .sortable-handle {
+    cursor: grab;
+    color: #94a3b8;
+    display: inline-flex;
+    align-items: center;
+    font-size: 1.35rem;
+}
+
+.services-manager-item .sortable-handle:active {
+    cursor: grabbing;
+}
+
+.services-manager-icon {
+    display: flex;
+    align-items: center;
+}
+
+.services-icon-badge {
+    width: 44px;
+    height: 44px;
+    border-radius: 0.85rem;
+    background: rgba(99, 102, 241, 0.12);
+    color: #4f46e5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.services-manager-item .btn-group .btn {
+    min-width: 36px;
+}
+
+.services-manager-item.services-item-hidden {
+    opacity: 0.65;
+    border-style: dashed;
+}
+
+.services-manager-item.services-item-hidden [data-service-hidden] {
+    opacity: 1;
+}
+
+.services-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+}
+
+.service-preview-card {
+    height: 100%;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.service-preview-card .card {
+    border-radius: 0.85rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: none;
+    height: 100%;
+}
+
+.service-preview-card .card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.service-preview-card:hover {
+    transform: translateY(-4px);
+}
+
+.service-preview-card:hover .card {
+    border-color: #c7d2fe;
+    box-shadow: 0 16px 32px -18px rgba(99, 102, 241, 0.4);
+}
+
+.service-preview-card.is-hidden {
+    opacity: 0.5;
+}
+
+.service-preview-card.is-hidden .card {
+    border-style: dashed;
+}
+
+.service-preview-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 0.9rem;
+    background: rgba(99, 102, 241, 0.12);
+    color: #4f46e5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+}
+
+.service-preview-features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    color: #4b5563;
+}
+
+.service-preview-features li {
+    position: relative;
+    padding-left: 1.25rem;
+}
+
+.service-preview-features li::before {
+    content: '\2022';
+    position: absolute;
+    left: 0;
+    color: #6366f1;
+    font-weight: 600;
+}
+
+.service-preview-feature-empty {
+    list-style: none;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    padding-left: 0;
+}
+
+.service-preview-price {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.service-preview-card.is-hidden .service-preview-price {
+    opacity: 0.8;
+}
+
 .trend-indicator.negative {
     background: #fef2f2;
     color: #dc2626;

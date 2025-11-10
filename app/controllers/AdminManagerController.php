@@ -1843,15 +1843,21 @@ class AdminManagerController extends BaseController {
     // SERVICES MANAGEMENT
     public function services() {
         $this->userModel->requireAuth();
-        
-        $services = $this->serviceModel->all('sort_order ASC, title ASC');
-        
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->handleServicesStructureSave();
+            return;
+        }
+
+        $services = $this->serviceModel->getAllWithFeatures(true);
+        $normalized = array_map([$this, 'formatServiceForManager'], $services);
+
         $data = [
             'title' => 'Services Management - Admin',
             'page' => 'admin-services',
-            'services' => $services
+            'services' => $normalized
         ];
-        
+
         $this->render('admin/services', 'admin', $data);
     }
     
@@ -2961,6 +2967,181 @@ class AdminManagerController extends BaseController {
         }
 
         return [$normalized, $errors];
+    }
+
+    private function handleServicesStructureSave(): void {
+        $isAjax = $this->isAjaxRequest();
+        $payloadRaw = $_POST['services_structure'] ?? '';
+        $decoded = json_decode($payloadRaw, true);
+
+        if (!is_array($decoded)) {
+            if ($isAjax) {
+                $this->json([
+                    'success' => false,
+                    'message' => 'Invalid services payload received.'
+                ], 422);
+                return;
+            }
+
+            $this->setFlash('error', 'Invalid services payload received.');
+            $this->redirect('admin/services');
+            return;
+        }
+
+        [$structure, $errors] = $this->normalizeServicesStructure($decoded);
+
+        if (!empty($errors)) {
+            if ($isAjax) {
+                $this->json([
+                    'success' => false,
+                    'message' => 'Please resolve the highlighted service issues before saving.',
+                    'errors' => $errors
+                ], 422);
+                return;
+            }
+
+            $this->setFlash('error', 'Please resolve the highlighted service issues before saving.');
+            $this->setFlash('form_errors', $errors);
+            $this->redirect('admin/services');
+            return;
+        }
+
+        try {
+            $this->serviceModel->syncServices($structure);
+
+            $services = $this->serviceModel->getAllWithFeatures(true);
+            $normalized = array_map([$this, 'formatServiceForManager'], $services);
+
+            if ($isAjax) {
+                $this->json([
+                    'success' => true,
+                    'message' => 'Services updated successfully.',
+                    'services' => $normalized
+                ]);
+                return;
+            }
+
+            $this->setFlash('success', 'Services updated successfully.');
+        } catch (Exception $exception) {
+            error_log('Failed to sync services: ' . $exception->getMessage());
+
+            if ($isAjax) {
+                $this->json([
+                    'success' => false,
+                    'message' => 'Unable to update services. Please try again.'
+                ], 500);
+                return;
+            }
+
+            $this->setFlash('error', 'Unable to update services. Please try again.');
+        }
+
+        $this->redirect('admin/services');
+    }
+
+    private function normalizeServicesStructure(array $payload): array {
+        $normalized = [];
+        $errors = [];
+
+        foreach ($payload as $serviceData) {
+            if (!is_array($serviceData)) {
+                continue;
+            }
+
+            $title = trim((string)($serviceData['title'] ?? ''));
+            if (mb_strlen($title) < 3) {
+                $errors[] = 'Each service needs a title with at least 3 characters.';
+                continue;
+            }
+
+            $description = trim((string)($serviceData['description'] ?? ''));
+            if (mb_strlen($description) < 12) {
+                $errors[] = sprintf('Add a short description for "%s" (minimum 12 characters).', $title);
+                continue;
+            }
+
+            $iconRaw = trim((string)($serviceData['icon'] ?? ''));
+            $iconSanitized = preg_replace('/[^a-z0-9\s\-_:]/i', '', $iconRaw);
+            $iconSanitized = trim(preg_replace('/\s+/', ' ', $iconSanitized ?? ''));
+            $iconSanitized = mb_substr($iconSanitized, 0, 120);
+
+            $priceLabel = trim((string)($serviceData['price_label'] ?? ''));
+            $priceLabel = mb_substr($priceLabel, 0, 120);
+
+            $priceAmount = null;
+            $priceAmountRaw = $serviceData['price_amount'] ?? null;
+            if ($priceAmountRaw !== null && $priceAmountRaw !== '') {
+                if (!is_numeric($priceAmountRaw)) {
+                    $errors[] = sprintf('Price amount for "%s" must be a valid number.', $title);
+                } else {
+                    $priceAmount = round((float)$priceAmountRaw, 2);
+                }
+            }
+
+            $featuresRaw = $serviceData['features'] ?? [];
+            if (is_string($featuresRaw)) {
+                $featuresRaw = preg_split('/\r?\n/', $featuresRaw);
+            }
+            if (!is_array($featuresRaw)) {
+                $featuresRaw = [];
+            }
+
+            $features = [];
+            foreach ($featuresRaw as $feature) {
+                $text = trim((string)$feature);
+                if ($text === '') {
+                    continue;
+                }
+                $features[] = mb_substr($text, 0, 255);
+            }
+
+            if (empty($features)) {
+                $errors[] = sprintf('Add at least one feature bullet for "%s".', $title);
+            }
+
+            $normalized[] = [
+                'id' => (int)($serviceData['id'] ?? 0),
+                'icon' => $iconSanitized,
+                'title' => mb_substr($title, 0, 200),
+                'description' => mb_substr($description, 0, 2000),
+                'price_label' => $priceLabel,
+                'price_amount' => $priceAmount,
+                'is_visible' => !empty($serviceData['is_visible']) ? 1 : 0,
+                'features' => $features
+            ];
+        }
+
+        if (empty($normalized)) {
+            $errors[] = 'Add at least one service before saving.';
+        }
+
+        return [$normalized, $errors];
+    }
+
+    private function formatServiceForManager(array $service): array {
+        $priceAmount = null;
+        if (isset($service['price_amount']) && $service['price_amount'] !== '' && $service['price_amount'] !== null) {
+            $priceAmount = (float)$service['price_amount'];
+        }
+
+        $features = [];
+        if (!empty($service['features']) && is_array($service['features'])) {
+            foreach ($service['features'] as $feature) {
+                $features[] = (string)$feature;
+            }
+        }
+
+        return [
+            'id' => (int)($service['id'] ?? 0),
+            'icon' => (string)($service['icon'] ?? ''),
+            'title' => (string)($service['title'] ?? ''),
+            'description' => (string)($service['description'] ?? ''),
+            'price_label' => (string)($service['price_label'] ?? ''),
+            'price_amount' => $priceAmount,
+            'is_visible' => (int)($service['is_visible'] ?? (($service['status'] ?? '') === 'published' ? 1 : 0)),
+            'features' => $features,
+            'sort_order' => (int)($service['sort_order'] ?? 0)
+        ];
     }
     
     // UTILITY METHODS

@@ -7,7 +7,8 @@
         initializeHeroStatsManager();
         initializeFeaturedWorkManager();
         initializeTestimonialsManager();
-        initializeHomePageCtaManager();
+    initializeHomePageCtaManager();
+    initializeServicesManager();
         initializeServicesPreviewManager();
         initializeSkillsPreviewManager();
         initializeAboutHighlights();
@@ -18,6 +19,7 @@
 
 const toggleRegistry = new WeakMap();
 const heroStatItemTimers = new WeakMap();
+const servicesFeedbackTimers = new WeakMap();
 
 function initializePreviewHandlers() {
     document.querySelectorAll('.admin-form').forEach(registerPreviewContainer);
@@ -1888,6 +1890,1089 @@ function initializeFeaturedWorkManager() {
 
     if (cancelButton) {
         cancelButton.addEventListener('click', handleCancel);
+    }
+}
+
+function initializeServicesManager() {
+    const container = document.querySelector('[data-services-manager]');
+    if (!container) {
+        return;
+    }
+
+    const form = container.querySelector('[data-services-form]');
+    const list = container.querySelector('[data-services-list]');
+    const previewGrid = container.querySelector('[data-services-preview]');
+    const payloadInput = container.querySelector('[data-services-payload]');
+    const addButton = container.querySelector('[data-services-add]');
+    const cancelButton = container.querySelector('[data-services-cancel]');
+    const saveButton = container.querySelector('[data-services-save]');
+    const emptyListState = container.querySelector('[data-services-empty]');
+    const emptyPreviewState = container.querySelector('[data-preview-empty]');
+    const feedback = container.querySelector('[data-services-feedback]');
+    const listTemplate = document.getElementById('serviceListItemTemplate');
+    const previewTemplate = document.getElementById('servicePreviewTemplate');
+    const modalElement = document.getElementById('serviceModal');
+
+    if (!form || !list || !previewGrid || !payloadInput || !listTemplate || !previewTemplate || !modalElement) {
+        return;
+    }
+
+    const modalForm = modalElement.querySelector('[data-service-form]');
+    const modalTitle = modalElement.querySelector('[data-service-modal-title]');
+    const modalError = modalElement.querySelector('[data-service-modal-error]');
+    const modalCancelButtons = modalElement.querySelectorAll('[data-service-modal-cancel]');
+
+    const modalFields = {
+        icon: modalElement.querySelector('[data-service-field="icon"]'),
+        visible: modalElement.querySelector('[data-service-field="visible"]'),
+        title: modalElement.querySelector('[data-service-field="title"]'),
+        description: modalElement.querySelector('[data-service-field="description"]'),
+        features: modalElement.querySelector('[data-service-field="features"]'),
+        priceLabel: modalElement.querySelector('[data-service-field="price_label"]'),
+        priceAmount: modalElement.querySelector('[data-service-field="price_amount"]')
+    };
+
+    if (!modalForm || !modalFields.title || !modalFields.description || !modalFields.features) {
+        return;
+    }
+
+    const modalInstance = typeof bootstrap !== 'undefined' && bootstrap.Modal
+        ? new bootstrap.Modal(modalElement)
+        : null;
+
+    const listTemplateContent = listTemplate.content && listTemplate.content.firstElementChild
+        ? listTemplate.content.firstElementChild
+        : null;
+
+    const previewTemplateContent = previewTemplate.content && previewTemplate.content.firstElementChild
+        ? previewTemplate.content.firstElementChild
+        : null;
+
+    if (!listTemplateContent || !previewTemplateContent) {
+        return;
+    }
+
+    let tempCounter = 0;
+    let isSaving = false;
+
+    const state = {
+        services: [],
+        original: [],
+        originalSerialized: '[]',
+        editingKey: null
+    };
+
+    const initialData = parseInitialServices(container.dataset.servicesInitial || '[]');
+    state.services = initialData.map(function (service, index) {
+        return normalizeService(service, index);
+    });
+    state.original = cloneServices(state.services);
+    state.originalSerialized = stringifyServices(state.original);
+
+    refreshUI();
+
+    if (addButton) {
+        addButton.addEventListener('click', function () {
+            openCreateModal();
+        });
+    }
+
+    if (cancelButton) {
+        cancelButton.addEventListener('click', function (event) {
+            event.preventDefault();
+            if (!isDirty()) {
+                flashFeedback('No changes to discard.', 'muted');
+                return;
+            }
+            state.services = cloneServices(state.original);
+            refreshUI();
+            flashFeedback('Changes discarded.', 'muted');
+        });
+    }
+
+    if (modalCancelButtons && modalCancelButtons.length) {
+        modalCancelButtons.forEach(function (button) {
+            button.addEventListener('click', function (event) {
+                event.preventDefault();
+                closeModal();
+            });
+        });
+    }
+
+    modalElement.addEventListener('hidden.bs.modal', function () {
+        resetModalForm();
+        state.editingKey = null;
+    });
+
+    list.addEventListener('sortable:reordered', function () {
+        reorderServices();
+    });
+
+    list.addEventListener('click', function (event) {
+        const editButton = event.target.closest('[data-service-edit]');
+        if (editButton) {
+            const item = editButton.closest('[data-service-item]');
+            if (item) {
+                openEditModal(item.dataset.serviceKey);
+            }
+            return;
+        }
+
+        const deleteButton = event.target.closest('[data-service-delete]');
+        if (deleteButton) {
+            const item = deleteButton.closest('[data-service-item]');
+            if (item) {
+                deleteService(item.dataset.serviceKey);
+            }
+        }
+    });
+
+    list.addEventListener('change', function (event) {
+        const toggle = event.target.closest('[data-service-visible-toggle]');
+        if (toggle) {
+            const item = toggle.closest('[data-service-item]');
+            if (item) {
+                toggleServiceVisibility(item.dataset.serviceKey, toggle.checked);
+            }
+        }
+    });
+
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        if (isSaving) {
+            return;
+        }
+
+        if (!state.services.length) {
+            flashFeedback('Add at least one service before saving.', 'warning');
+            return;
+        }
+
+        const serialized = stringifyServices(state.services);
+
+        if (serialized === state.originalSerialized) {
+            flashFeedback('No changes to save.', 'muted');
+            return;
+        }
+
+        payloadInput.value = serialized;
+        saveServices(serialized);
+    });
+
+    modalForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        handleModalSubmit();
+    });
+
+    function saveServices(serialized) {
+        isSaving = true;
+        setButtonLoading(saveButton, true);
+
+        if (cancelButton) {
+            cancelButton.disabled = true;
+        }
+
+        const formData = new FormData(form);
+        formData.set('services_structure', serialized);
+
+        fetch(form.action, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: formData,
+            credentials: 'same-origin'
+        })
+            .then(parseServicesManagerResponse)
+            .then(function (payload) {
+                if (!payload || !payload.data) {
+                    const unexpected = new Error('Unexpected response from server.');
+                    throw unexpected;
+                }
+
+                if (!payload.ok || payload.data.success === false) {
+                    const validationErrors = Array.isArray(payload.data.errors) ? payload.data.errors : null;
+                    const message = payload.data.message || 'Failed to update services.';
+                    const error = new Error(message);
+                    error.validationErrors = validationErrors;
+                    error.payload = payload.data;
+                    throw error;
+                }
+
+                tempCounter = 0;
+
+                const returnedServices = Array.isArray(payload.data.services) ? payload.data.services : [];
+                state.services = returnedServices.map(function (service, index) {
+                    return normalizeService(service, index);
+                });
+
+                state.original = cloneServices(state.services);
+                state.originalSerialized = stringifyServices(state.original);
+                payloadInput.defaultValue = state.originalSerialized;
+                container.dataset.servicesInitial = state.originalSerialized;
+
+                const successMessage = payload.data.message || 'Services updated successfully.';
+                flashFeedback(successMessage, 'success');
+                showToast(successMessage, 'success', true);
+            })
+            .catch(function (error) {
+                const errors = error && error.validationErrors && error.validationErrors.length
+                    ? error.validationErrors
+                    : null;
+
+                const message = errors && errors.length
+                    ? errors.join(' ')
+                    : (error && error.message ? error.message : 'Failed to update services. Please try again.');
+
+                flashFeedback(message, 'error');
+                showToast(message, 'danger', false);
+            })
+            .finally(function () {
+                setButtonLoading(saveButton, false);
+                isSaving = false;
+                refreshUI();
+            });
+    }
+
+    function parseServicesManagerResponse(response) {
+        const contentType = response.headers.get('content-type') || '';
+        const isJson = contentType.includes('application/json');
+
+        if (!isJson) {
+            return response.text().then(function (text) {
+                return {
+                    ok: response.ok,
+                    status: response.status,
+                    data: {
+                        success: response.ok,
+                        message: text || 'Server returned an unexpected response.'
+                    }
+                };
+            });
+        }
+
+        return response.json().then(function (data) {
+            return {
+                ok: response.ok,
+                status: response.status,
+                data: data
+            };
+        });
+    }
+
+    function parseInitialServices(raw) {
+        if (!raw) {
+            return [];
+        }
+
+        try {
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+            console.warn('Failed to parse services initial payload', error);
+            return [];
+        }
+    }
+
+    function normalizeService(service, index) {
+        const priceSource = service && typeof service.price_amount !== 'undefined'
+            ? service.price_amount
+            : null;
+
+        const visibilitySource = service && typeof service.is_visible !== 'undefined'
+            ? service.is_visible
+            : (service && typeof service.status !== 'undefined' ? service.status : true);
+
+        const normalized = {
+            id: Number(service && service.id ? service.id : 0),
+            icon: service && typeof service.icon === 'string' ? service.icon.trim() : '',
+            title: service && typeof service.title === 'string' ? service.title.trim() : '',
+            description: service && typeof service.description === 'string' ? service.description.trim() : '',
+            price_label: service && typeof service.price_label === 'string' ? service.price_label.trim() : '',
+            price_amount: parsePriceValue(priceSource),
+            is_visible: normalizeVisibility(visibilitySource),
+            features: normalizeFeatures(service && service.features ? service.features : []),
+            sort_order: typeof (service && service.sort_order) === 'number'
+                ? service.sort_order
+                : (typeof index === 'number' ? index + 1 : 0)
+        };
+
+        normalized._clientId = service && service._clientId
+            ? service._clientId
+            : generateClientId(normalized.id, index);
+
+        return normalized;
+    }
+
+    function normalizeFeatures(raw) {
+        if (Array.isArray(raw)) {
+            return raw.map(function (feature) {
+                return String(feature || '').trim();
+            }).filter(function (feature) {
+                return feature.length > 0;
+            });
+        }
+
+        if (typeof raw === 'string') {
+            return raw.split(/\r?\n/).map(function (line) {
+                return line.trim();
+            }).filter(function (line) {
+                return line.length > 0;
+            });
+        }
+
+        return [];
+    }
+
+    function normalizeVisibility(value) {
+        if (typeof value === 'boolean') {
+            return value;
+        }
+
+        if (typeof value === 'number') {
+            return value === 1;
+        }
+
+        if (typeof value === 'string') {
+            const normalized = value.trim().toLowerCase();
+            if (['0', 'false', 'no', 'hidden', 'draft', 'off'].includes(normalized)) {
+                return false;
+            }
+            if (['1', 'true', 'yes', 'published', 'on', 'visible'].includes(normalized)) {
+                return true;
+            }
+        }
+
+        return !!value;
+    }
+
+    function parsePriceValue(value) {
+        if (value === null || typeof value === 'undefined' || value === '') {
+            return null;
+        }
+
+        if (typeof value === 'number') {
+            return isFinite(value) ? Math.round(value * 100) / 100 : null;
+        }
+
+        const normalized = String(value).replace(/,/g, '').trim();
+        if (normalized === '') {
+            return null;
+        }
+
+        const numeric = parseFloat(normalized);
+        if (!isFinite(numeric)) {
+            return null;
+        }
+
+        return Math.round(numeric * 100) / 100;
+    }
+
+    function generateClientId(id, index) {
+        if (id) {
+            return 'svc-' + id;
+        }
+        tempCounter += 1;
+        const suffix = typeof index === 'number' ? '-' + index : '';
+        return 'svc-temp-' + Date.now().toString(36) + '-' + tempCounter.toString(36) + suffix;
+    }
+
+    function cloneServices(list) {
+        return list.map(function (service) {
+            return {
+                id: service.id,
+                icon: service.icon,
+                title: service.title,
+                description: service.description,
+                price_label: service.price_label,
+                price_amount: service.price_amount,
+                is_visible: service.is_visible,
+                sort_order: service.sort_order,
+                features: service.features.slice(),
+                _clientId: service._clientId
+            };
+        });
+    }
+
+    function stringifyServices(list) {
+        return JSON.stringify(list.map(function (service, index) {
+            return mapServiceForPayload(service, index);
+        }));
+    }
+
+    function mapServiceForPayload(service, index) {
+        return {
+            id: Number(service.id || 0),
+            icon: service.icon,
+            title: service.title,
+            description: service.description,
+            price_label: service.price_label,
+            price_amount: service.price_amount !== null && typeof service.price_amount !== 'undefined'
+                ? Number(service.price_amount)
+                : null,
+            is_visible: service.is_visible ? 1 : 0,
+            features: service.features.slice(),
+            sort_order: typeof service.sort_order === 'number'
+                ? service.sort_order
+                : (typeof index === 'number' ? index + 1 : 0)
+        };
+    }
+
+    function refreshUI() {
+        state.services.forEach(function (service, index) {
+            service.sort_order = index + 1;
+        });
+
+        renderList();
+        renderPreview();
+        updateEmptyStates();
+
+        const serialized = stringifyServices(state.services);
+        payloadInput.value = serialized;
+
+        const dirty = serialized !== state.originalSerialized;
+        if (saveButton) {
+            saveButton.disabled = !dirty || isSaving;
+        }
+        if (cancelButton) {
+            cancelButton.disabled = !dirty || isSaving;
+        }
+
+        if (feedback && !servicesFeedbackTimers.has(feedback)) {
+            applyFeedback(buildSummaryText(), 'muted');
+        }
+    }
+
+    function buildSummaryText() {
+        const total = state.services.length;
+        if (!total) {
+            return 'No services configured yet.';
+        }
+
+        const visibleCount = state.services.filter(function (service) {
+            return service.is_visible;
+        }).length;
+
+        const totalLabel = total === 1 ? '1 service' : total + ' services';
+        const visibleLabel = visibleCount === 1 ? '1 visible' : visibleCount + ' visible';
+
+        return totalLabel + ' total · ' + visibleLabel + ' on site';
+    }
+
+    function applyFeedback(message, tone) {
+        if (!feedback) {
+            return;
+        }
+
+        feedback.textContent = message || '';
+        feedback.classList.remove('text-success', 'text-danger', 'text-warning', 'text-muted');
+
+        if (!message) {
+            feedback.classList.add('text-muted');
+            return;
+        }
+
+        switch (tone) {
+            case 'success':
+                feedback.classList.add('text-success');
+                break;
+            case 'warning':
+                feedback.classList.add('text-warning');
+                break;
+            case 'error':
+                feedback.classList.add('text-danger');
+                break;
+            default:
+                feedback.classList.add('text-muted');
+        }
+    }
+
+    function flashFeedback(message, tone) {
+        if (!feedback) {
+            return;
+        }
+
+        clearFeedbackTimer();
+        applyFeedback(message, tone);
+
+        const timerId = window.setTimeout(function () {
+            servicesFeedbackTimers.delete(feedback);
+            applyFeedback(buildSummaryText(), 'muted');
+        }, 2500);
+
+        servicesFeedbackTimers.set(feedback, timerId);
+    }
+
+    function clearFeedbackTimer() {
+        if (!feedback) {
+            return;
+        }
+
+        if (servicesFeedbackTimers.has(feedback)) {
+            window.clearTimeout(servicesFeedbackTimers.get(feedback));
+            servicesFeedbackTimers.delete(feedback);
+        }
+    }
+
+    function renderList() {
+        list.innerHTML = '';
+
+        state.services.forEach(function (service) {
+            const item = listTemplateContent.cloneNode(true);
+            item.dataset.serviceKey = service._clientId;
+            item.dataset.sortableId = service._clientId;
+
+            const titleEl = item.querySelector('[data-service-title]');
+            if (titleEl) {
+                titleEl.textContent = service.title || 'Untitled service';
+            }
+
+            const descriptionEl = item.querySelector('[data-service-description]');
+            if (descriptionEl) {
+                descriptionEl.textContent = truncateText(service.description || '', 160);
+            }
+
+            const featureSummary = item.querySelector('[data-service-feature-summary]');
+            renderFeatureSummary(featureSummary, service.features);
+
+            const iconPreview = item.querySelector('[data-service-icon-preview]');
+            assignIconClass(iconPreview, service.icon);
+
+            const priceBadge = item.querySelector('[data-service-price]');
+            updatePriceBadge(priceBadge, service);
+
+            const hiddenBadge = item.querySelector('[data-service-hidden]');
+            if (hiddenBadge) {
+                if (service.is_visible) {
+                    hiddenBadge.classList.add('d-none');
+                } else {
+                    hiddenBadge.classList.remove('d-none');
+                }
+            }
+
+            const toggleInput = item.querySelector('[data-service-visible-toggle]');
+            if (toggleInput) {
+                toggleInput.checked = !!service.is_visible;
+            }
+
+            item.classList.toggle('services-item-hidden', !service.is_visible);
+
+            list.appendChild(item);
+        });
+    }
+
+    function renderFeatureSummary(container, features) {
+        if (!container) {
+            return;
+        }
+
+        if (!features.length) {
+            container.textContent = 'No feature bullets yet.';
+            return;
+        }
+
+        const preview = features.slice(0, 3).join(' • ');
+        const remaining = features.length - 3;
+
+        container.textContent = remaining > 0
+            ? preview + ' • +' + remaining + ' more'
+            : preview;
+    }
+
+    function renderPreview() {
+        previewGrid.innerHTML = '';
+
+        state.services.forEach(function (service) {
+            const fragment = previewTemplateContent.cloneNode(true);
+            const root = fragment.querySelector('[data-preview-service]');
+            const iconEl = fragment.querySelector('[data-preview-icon]');
+            const titleEl = fragment.querySelector('[data-preview-title]');
+            const descriptionEl = fragment.querySelector('[data-preview-description]');
+            const featureList = fragment.querySelector('[data-preview-features]');
+            const priceBlock = fragment.querySelector('[data-preview-price]');
+            const hiddenBadge = fragment.querySelector('[data-preview-hidden-badge]');
+
+            if (root) {
+                root.dataset.serviceKey = service._clientId;
+                root.classList.toggle('is-hidden', !service.is_visible);
+            }
+
+            assignIconClass(iconEl, service.icon);
+
+            if (titleEl) {
+                titleEl.textContent = service.title || 'Untitled service';
+            }
+
+            if (descriptionEl) {
+                descriptionEl.textContent = service.description || '';
+            }
+
+            renderPreviewFeatures(featureList, service.features);
+            updatePricePreview(priceBlock, service);
+
+            if (hiddenBadge) {
+                if (service.is_visible) {
+                    hiddenBadge.classList.add('d-none');
+                } else {
+                    hiddenBadge.classList.remove('d-none');
+                }
+            }
+
+            previewGrid.appendChild(fragment);
+        });
+    }
+
+    function renderPreviewFeatures(listElement, features) {
+        if (!listElement) {
+            return;
+        }
+
+        listElement.innerHTML = '';
+
+        if (!features.length) {
+            const empty = document.createElement('li');
+            empty.className = 'service-preview-feature-empty';
+            empty.textContent = 'Add feature bullets to highlight value.';
+            listElement.appendChild(empty);
+            return;
+        }
+
+        features.forEach(function (feature) {
+            const item = document.createElement('li');
+            item.textContent = feature;
+            listElement.appendChild(item);
+        });
+    }
+
+    function updatePriceBadge(element, service) {
+        if (!element) {
+            return;
+        }
+
+        const parts = [];
+        if (service.price_label) {
+            parts.push(service.price_label);
+        }
+
+        if (typeof service.price_amount === 'number' && isFinite(service.price_amount)) {
+            parts.push(formatPrice(service.price_amount));
+        }
+
+        if (!parts.length) {
+            element.classList.add('d-none');
+            element.textContent = '';
+            return;
+        }
+
+        element.classList.remove('d-none');
+        element.textContent = parts.join(' · ');
+    }
+
+    function updatePricePreview(element, service) {
+        if (!element) {
+            return;
+        }
+
+        const parts = [];
+        if (service.price_label) {
+            parts.push(service.price_label);
+        }
+
+        if (typeof service.price_amount === 'number' && isFinite(service.price_amount)) {
+            parts.push(formatPrice(service.price_amount));
+        }
+
+        if (!parts.length) {
+            element.classList.add('d-none');
+            element.textContent = '';
+            return;
+        }
+
+        element.classList.remove('d-none');
+        element.textContent = parts.join(' · ');
+    }
+
+    function formatPrice(amount) {
+        if (!isFinite(amount)) {
+            return '';
+        }
+
+        const hasDecimals = Math.round(amount * 100) % 100 !== 0;
+        return amount.toLocaleString(undefined, {
+            minimumFractionDigits: hasDecimals ? 2 : 0,
+            maximumFractionDigits: hasDecimals ? 2 : 0
+        });
+    }
+
+    function updateEmptyStates() {
+        const hasServices = state.services.length > 0;
+
+        if (emptyListState) {
+            emptyListState.classList.toggle('d-none', hasServices);
+        }
+
+        if (list) {
+            list.classList.toggle('d-none', !hasServices);
+        }
+
+        if (emptyPreviewState) {
+            emptyPreviewState.classList.toggle('d-none', hasServices);
+        }
+
+        if (previewGrid) {
+            previewGrid.classList.toggle('d-none', !hasServices);
+        }
+    }
+
+    function assignIconClass(element, iconClass) {
+        if (!element) {
+            return;
+        }
+
+        const fallback = 'bi bi-stars';
+        const raw = typeof iconClass === 'string' ? iconClass.trim() : '';
+
+        if (!raw) {
+            element.className = fallback;
+            return;
+        }
+
+        const classes = raw.split(/\s+/).filter(Boolean);
+        const hasBootstrapIcon = classes.some(function (cls) {
+            return cls === 'bi' || cls.indexOf('bi-') === 0;
+        });
+
+        if (hasBootstrapIcon) {
+            element.className = classes.join(' ');
+            return;
+        }
+
+        element.className = ['bi'].concat(classes).join(' ');
+    }
+
+    function truncateText(text, limit) {
+        if (!text) {
+            return '';
+        }
+
+        if (text.length <= limit) {
+            return text;
+        }
+
+        if (limit <= 3) {
+            return text.slice(0, limit);
+        }
+
+        return text.slice(0, limit - 3) + '...';
+    }
+
+    function findServiceIndexByKey(key) {
+        if (!key) {
+            return -1;
+        }
+
+        for (let index = 0; index < state.services.length; index += 1) {
+            if (state.services[index]._clientId === key) {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    function toggleServiceVisibility(key, visible) {
+        const index = findServiceIndexByKey(key);
+        if (index === -1) {
+            return;
+        }
+
+        const normalized = !!visible;
+        if (state.services[index].is_visible === normalized) {
+            return;
+        }
+
+        state.services[index].is_visible = normalized;
+        refreshUI();
+        flashFeedback(normalized ? 'Service marked as visible.' : 'Service hidden from site.', 'muted');
+    }
+
+    function deleteService(key) {
+        const index = findServiceIndexByKey(key);
+        if (index === -1) {
+            return;
+        }
+
+        const service = state.services[index];
+        const label = service.title ? '"' + service.title + '"' : 'this service';
+
+        if (!window.confirm('Remove ' + label + ' from the list?')) {
+            return;
+        }
+
+        state.services.splice(index, 1);
+        refreshUI();
+        flashFeedback('Service removed from the list.', 'warning');
+    }
+
+    function openCreateModal() {
+        state.editingKey = null;
+        if (modalTitle) {
+            modalTitle.textContent = 'Add Service';
+        }
+        resetModalForm();
+        hideModalError();
+        showModal();
+        if (modalFields.title) {
+            modalFields.title.focus({ preventScroll: true });
+        }
+    }
+
+    function openEditModal(key) {
+        const index = findServiceIndexByKey(key);
+        if (index === -1) {
+            return;
+        }
+
+        const service = state.services[index];
+        state.editingKey = service._clientId;
+
+        if (modalTitle) {
+            modalTitle.textContent = 'Edit Service';
+        }
+
+        modalForm.reset();
+        hideModalError();
+
+        if (modalFields.icon) {
+            modalFields.icon.value = service.icon;
+        }
+        if (modalFields.title) {
+            modalFields.title.value = service.title;
+        }
+        if (modalFields.description) {
+            modalFields.description.value = service.description;
+        }
+        if (modalFields.features) {
+            modalFields.features.value = service.features.join('\n');
+        }
+        if (modalFields.priceLabel) {
+            modalFields.priceLabel.value = service.price_label;
+        }
+        if (modalFields.priceAmount) {
+            modalFields.priceAmount.value = service.price_amount === null || typeof service.price_amount === 'undefined'
+                ? ''
+                : service.price_amount;
+        }
+        if (modalFields.visible) {
+            modalFields.visible.checked = !!service.is_visible;
+        }
+
+        showModal();
+
+        if (modalFields.title) {
+            modalFields.title.focus({ preventScroll: true });
+        }
+    }
+
+    function resetModalForm() {
+        modalForm.reset();
+        hideModalError();
+        if (modalFields.visible) {
+            modalFields.visible.checked = true;
+        }
+    }
+
+    function showModal() {
+        if (modalInstance) {
+            modalInstance.show();
+        } else {
+            modalElement.classList.add('show');
+            modalElement.removeAttribute('aria-hidden');
+            modalElement.style.display = 'block';
+        }
+    }
+
+    function closeModal() {
+        if (modalInstance) {
+            modalInstance.hide();
+        } else {
+            modalElement.classList.remove('show');
+            modalElement.setAttribute('aria-hidden', 'true');
+            modalElement.style.display = 'none';
+            resetModalForm();
+            state.editingKey = null;
+        }
+    }
+
+    function showModalError(message) {
+        if (!modalError) {
+            return;
+        }
+        modalError.textContent = message;
+        modalError.classList.remove('d-none');
+    }
+
+    function hideModalError() {
+        if (!modalError) {
+            return;
+        }
+        modalError.textContent = '';
+        modalError.classList.add('d-none');
+    }
+
+    function handleModalSubmit() {
+        const result = collectModalData();
+        if (!result.ok) {
+            showModalError(result.errors.join(' '));
+            return;
+        }
+
+        hideModalError();
+
+        const editingKey = state.editingKey;
+        const isEdit = !!editingKey;
+
+        if (isEdit) {
+            updateExistingService(editingKey, result.data);
+        } else {
+            addNewService(result.data);
+        }
+
+        closeModal();
+        refreshUI();
+        flashFeedback(isEdit ? 'Service updated.' : 'Service added.', 'success');
+    }
+
+    function collectModalData() {
+        const errors = [];
+
+        const icon = modalFields.icon ? modalFields.icon.value.trim() : '';
+        const title = modalFields.title ? modalFields.title.value.trim() : '';
+        const description = modalFields.description ? modalFields.description.value.trim() : '';
+        const features = modalFields.features ? parseFeatureLines(modalFields.features.value) : [];
+        const priceLabel = modalFields.priceLabel ? modalFields.priceLabel.value.trim() : '';
+        const rawAmount = modalFields.priceAmount ? modalFields.priceAmount.value : '';
+        const priceAmount = rawAmount === '' ? null : parsePriceValue(rawAmount);
+        const visible = modalFields.visible ? modalFields.visible.checked : true;
+
+        if (title.length < 3) {
+            errors.push('Title must be at least 3 characters long.');
+        }
+
+        if (description.length < 12) {
+            errors.push('Description must be at least 12 characters long.');
+        }
+
+        if (!features.length) {
+            errors.push('Add at least one feature bullet.');
+        }
+
+        if (rawAmount !== '' && priceAmount === null) {
+            errors.push('Price amount must be a valid number.');
+        }
+
+        if (errors.length) {
+            return { ok: false, errors: errors };
+        }
+
+        return {
+            ok: true,
+            data: {
+                icon: icon,
+                title: title,
+                description: description,
+                features: features,
+                price_label: priceLabel,
+                price_amount: priceAmount,
+                is_visible: visible
+            }
+        };
+    }
+
+    function parseFeatureLines(raw) {
+        return String(raw || '').split(/\r?\n/)
+            .map(function (line) {
+                return line.trim();
+            })
+            .filter(function (line) {
+                return line.length > 0;
+            });
+    }
+
+    function addNewService(data) {
+        const nextOrder = state.services.length + 1;
+
+        state.services.push({
+            id: 0,
+            icon: data.icon,
+            title: data.title,
+            description: data.description,
+            price_label: data.price_label,
+            price_amount: data.price_amount,
+            is_visible: data.is_visible,
+            sort_order: nextOrder,
+            features: data.features.slice(),
+            _clientId: generateClientId(0)
+        });
+    }
+
+    function updateExistingService(key, data) {
+        const index = findServiceIndexByKey(key);
+        if (index === -1) {
+            return;
+        }
+
+        const existing = state.services[index];
+        state.services[index] = {
+            id: existing.id,
+            icon: data.icon,
+            title: data.title,
+            description: data.description,
+            price_label: data.price_label,
+            price_amount: data.price_amount,
+            is_visible: data.is_visible,
+            sort_order: existing.sort_order,
+            features: data.features.slice(),
+            _clientId: existing._clientId
+        };
+    }
+
+    function reorderServices() {
+        const keys = Array.from(list.querySelectorAll('[data-service-item]'))
+            .map(function (item) {
+                return item.dataset.serviceKey;
+            })
+            .filter(Boolean);
+
+        if (!keys.length || keys.length !== state.services.length) {
+            return;
+        }
+
+        const lookup = new Map();
+        state.services.forEach(function (service) {
+            lookup.set(service._clientId, service);
+        });
+
+        const reordered = [];
+        keys.forEach(function (key) {
+            if (lookup.has(key)) {
+                reordered.push(lookup.get(key));
+            }
+        });
+
+        if (reordered.length !== state.services.length) {
+            return;
+        }
+
+        state.services = reordered;
+        refreshUI();
+        flashFeedback('Service order updated.', 'muted');
+    }
+
+    function isDirty() {
+        return stringifyServices(state.services) !== state.originalSerialized;
     }
 }
 
