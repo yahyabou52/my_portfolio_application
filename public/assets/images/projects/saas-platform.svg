@@ -1,0 +1,51 @@
+<svg width="600" height="400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad5" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#grad5)"/>
+  
+  <!-- Browser mockup -->
+  <rect x="75" y="60" width="450" height="280" rx="15" ry="15" fill="#ffffff" stroke="#e0e0e0" stroke-width="2"/>
+  
+  <!-- Browser header -->
+  <rect x="85" y="70" width="430" height="30" fill="#f8f9fa"/>
+  <circle cx="100" cy="85" r="5" fill="#ff5f56"/>
+  <circle cx="115" cy="85" r="5" fill="#ffbd2e"/>
+  <circle cx="130" cy="85" r="5" fill="#27ca3f"/>
+  <rect x="200" y="80" width="200" height="10" rx="5" fill="#e9ecef"/>
+  
+  <!-- SaaS interface -->
+  <rect x="85" y="110" width="430" height="220" fill="#ffffff"/>
+  
+  <!-- Top bar -->
+  <rect x="95" y="120" width="410" height="40" fill="#667eea"/>
+  <rect x="105" y="130" width="100" height="20" rx="10" fill="#ffffff"/>
+  <circle cx="450" cy="140" r="10" fill="#ffffff" opacity="0.8"/>
+  
+  <!-- Sidebar -->
+  <rect x="95" y="170" width="100" height="150" fill="#f8f9fa"/>
+  <rect x="105" y="180" width="80" height="12" rx="6" fill="#667eea"/>
+  <rect x="105" y="200" width="80" height="10" rx="5" fill="#e9ecef"/>
+  <rect x="105" y="220" width="80" height="10" rx="5" fill="#e9ecef"/>
+  <rect x="105" y="240" width="80" height="10" rx="5" fill="#e9ecef"/>
+  
+  <!-- Main content -->
+  <rect x="205" y="170" width="290" height="150" fill="#ffffff"/>
+  
+  <!-- Content blocks -->
+  <rect x="215" y="180" width="130" height="60" rx="8" fill="#667eea" opacity="0.1"/>
+  <rect x="355" y="180" width="130" height="60" rx="8" fill="#764ba2" opacity="0.1"/>
+  
+  <!-- Data table -->
+  <rect x="215" y="250" width="270" height="60" rx="8" fill="#f8f9fa"/>
+  <rect x="225" y="260" width="250" height="8" rx="4" fill="#667eea"/>
+  <rect x="225" y="275" width="200" height="6" rx="3" fill="#e9ecef"/>
+  <rect x="225" y="287" width="180" height="6" rx="3" fill="#e9ecef"/>
+  <rect x="225" y="299" width="220" height="6" rx="3" fill="#e9ecef"/>
+  
+  <!-- Title -->
+  <text x="300" y="380" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="20" font-weight="bold">SaaS Platform Interface</text>
+</svg>

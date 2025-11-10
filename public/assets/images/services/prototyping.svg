@@ -1,0 +1,26 @@
+<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="protoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#43e97b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#38f9d7;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="90" fill="url(#protoGrad)"/>
+  
+  <!-- Prototyping icon elements -->
+  <rect x="60" y="60" width="80" height="80" rx="10" fill="#ffffff" opacity="0.9"/>
+  
+  <!-- Screen mockups -->
+  <rect x="70" y="70" width="25" height="35" rx="3" fill="#43e97b"/>
+  <rect x="105" y="70" width="25" height="35" rx="3" fill="#38f9d7"/>
+  
+  <!-- Connection lines -->
+  <line x1="95" y1="87" x2="105" y2="87" stroke="#ffffff" stroke-width="3"/>
+  <polygon points="103,84 108,87 103,90" fill="#ffffff"/>
+  
+  <!-- Interactive elements -->
+  <rect x="70" y="115" width="60" height="15" rx="7" fill="#43e97b"/>
+  <circle cx="85" cy="122" r="3" fill="#ffffff"/>
+  <circle cx="100" cy="122" r="3" fill="#ffffff"/>
+  <circle cx="115" cy="122" r="3" fill="#ffffff"/>
+</svg>
