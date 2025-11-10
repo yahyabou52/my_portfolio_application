@@ -8,6 +8,7 @@ require_once ROOT_PATH . '/app/models/Page.php';
 require_once ROOT_PATH . '/app/models/Service.php';
 require_once ROOT_PATH . '/app/models/ServiceFeature.php';
 require_once ROOT_PATH . '/app/models/ServiceProcessStep.php';
+require_once ROOT_PATH . '/app/models/PricingPlan.php';
 require_once ROOT_PATH . '/app/models/Project.php';
 require_once ROOT_PATH . '/app/models/NavigationMenu.php';
 require_once ROOT_PATH . '/app/models/Media.php';
@@ -31,6 +32,7 @@ class AdminManagerController extends BaseController {
     private $serviceModel;
     private $serviceFeatureModel;
     private $serviceProcessModel;
+    private $pricingPlanModel;
     private $projectModel;
     private $navigationModel;
     private $mediaModel;
@@ -50,6 +52,7 @@ class AdminManagerController extends BaseController {
         $this->serviceModel = new Service();
         $this->serviceFeatureModel = new ServiceFeature();
         $this->serviceProcessModel = new ServiceProcessStep();
+    $this->pricingPlanModel = new PricingPlan();
         $this->projectModel = new Project();
         $this->navigationModel = new NavigationMenu();
         $this->mediaModel = new Media();
@@ -4216,6 +4219,705 @@ class AdminManagerController extends BaseController {
             'price_amount' => null,
             'is_visible' => 1
         ];
+    }
+
+    // PRICING PLAN MANAGEMENT
+    public function pricingPlans() {
+        $this->userModel->requireAuth();
+
+        $plans = $this->getFormattedPricingPlans();
+        $stats = $this->buildPricingPlanStats($plans);
+
+        $routes = [
+            'fetch' => url('admin/services/pricing/list'),
+            'store' => url('admin/services/pricing'),
+            'update_template' => url('admin/services/pricing/__ID__/update'),
+            'delete_template' => url('admin/services/pricing/__ID__/delete'),
+            'highlight_template' => url('admin/services/pricing/__ID__/highlight'),
+            'reorder' => url('admin/services/pricing/reorder')
+        ];
+
+        $data = [
+            'title' => 'Pricing Plans - Admin',
+            'page' => 'admin-pricing-plans',
+            'plans_json' => htmlspecialchars(json_encode($plans, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8'),
+            'routes_json' => htmlspecialchars(json_encode($routes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8'),
+            'stats' => $stats
+        ];
+
+        $this->render('admin/pricing-plans', 'admin', $data);
+    }
+
+    public function fetchPricingPlans() {
+        $this->userModel->requireAuth();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json([
+                'success' => false,
+                'message' => 'Invalid request method.'
+            ], 405);
+            return;
+        }
+
+        $plans = $this->getFormattedPricingPlans();
+        $stats = $this->buildPricingPlanStats($plans);
+
+        $this->json([
+            'success' => true,
+            'message' => 'Pricing plans refreshed.',
+            'plans' => $plans,
+            'stats' => $stats
+        ]);
+    }
+
+    public function storePricingPlan() {
+        $this->userModel->requireAuth();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json([
+                'success' => false,
+                'message' => 'Invalid request method.'
+            ], 405);
+            return;
+        }
+
+        $input = $this->sanitizePricingPlanInput($_POST);
+        $errors = $this->validatePricingPlanInput($input);
+
+        if (!empty($errors)) {
+            $this->json([
+                'success' => false,
+                'message' => 'Please review the highlighted fields.',
+                'errors' => $errors
+            ], 422);
+            return;
+        }
+
+        $currentPlans = $this->pricingPlanModel->allForManager();
+        $sortOrder = count($currentPlans);
+
+        $payload = [
+            'title' => $input['title'],
+            'subtitle' => $input['subtitle'] !== '' ? $input['subtitle'] : null,
+            'price_amount' => $input['price_amount'] !== null ? $input['price_amount'] : 0,
+            'price_period' => $input['price_period'] !== '' ? $input['price_period'] : null,
+            'badge_text' => $input['badge_text'] !== '' ? $input['badge_text'] : null,
+            'cta_label' => $input['cta_label'] !== '' ? $input['cta_label'] : 'Start Project',
+            'cta_url' => $input['cta_url'] !== '' ? $input['cta_url'] : '/contact',
+            'features' => $input['features_text'] !== '' ? $input['features_text'] : null,
+            'visible' => $input['visible'] ? 1 : 0,
+            'highlight' => 0,
+            'sort_order' => $sortOrder
+        ];
+
+        try {
+            $planId = (int)$this->pricingPlanModel->create($payload);
+        } catch (Exception $exception) {
+            error_log('Failed to create pricing plan: ' . $exception->getMessage());
+            $this->json([
+                'success' => false,
+                'message' => 'Unable to create the pricing plan. Please try again.'
+            ], 500);
+            return;
+        }
+
+        $plans = $this->getFormattedPricingPlans();
+        $stats = $this->buildPricingPlanStats($plans);
+        $createdPlan = null;
+
+        foreach ($plans as $plan) {
+            if ($plan['id'] === $planId) {
+                $createdPlan = $plan;
+                break;
+            }
+        }
+
+        $this->json([
+            'success' => true,
+            'message' => 'Pricing plan created successfully.',
+            'plan' => $createdPlan,
+            'plans' => $plans,
+            'stats' => $stats
+        ]);
+    }
+
+    public function updatePricingPlan($id) {
+        $this->userModel->requireAuth();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json([
+                'success' => false,
+                'message' => 'Invalid request method.'
+            ], 405);
+            return;
+        }
+
+        $planId = (int)$id;
+        if ($planId <= 0) {
+            $this->json([
+                'success' => false,
+                'message' => 'Pricing plan not found.'
+            ], 404);
+            return;
+        }
+
+        $existing = $this->pricingPlanModel->findWithFeatures($planId);
+        if (!$existing) {
+            $this->json([
+                'success' => false,
+                'message' => 'Pricing plan not found.'
+            ], 404);
+            return;
+        }
+
+        $input = $this->sanitizePricingPlanInput($_POST, $existing);
+        $errors = $this->validatePricingPlanInput($input);
+
+        if (!empty($errors)) {
+            $this->json([
+                'success' => false,
+                'message' => 'Please review the highlighted fields.',
+                'errors' => $errors
+            ], 422);
+            return;
+        }
+
+        $payload = [
+            'title' => $input['title'],
+            'subtitle' => $input['subtitle'] !== '' ? $input['subtitle'] : null,
+            'price_amount' => $input['price_amount'] !== null ? $input['price_amount'] : 0,
+            'price_period' => $input['price_period'] !== '' ? $input['price_period'] : null,
+            'badge_text' => $input['badge_text'] !== '' ? $input['badge_text'] : null,
+            'cta_label' => $input['cta_label'] !== '' ? $input['cta_label'] : 'Start Project',
+            'cta_url' => $input['cta_url'] !== '' ? $input['cta_url'] : '/contact',
+            'features' => $input['features_text'] !== '' ? $input['features_text'] : null,
+            'visible' => $input['visible'] ? 1 : 0
+        ];
+
+        if (!$payload['visible'] && !empty($existing['highlight'])) {
+            $payload['highlight'] = 0;
+        }
+
+        try {
+            $this->pricingPlanModel->update($planId, $payload);
+        } catch (Exception $exception) {
+            error_log('Failed to update pricing plan: ' . $exception->getMessage());
+            $this->json([
+                'success' => false,
+                'message' => 'Unable to update the pricing plan. Please try again.'
+            ], 500);
+            return;
+        }
+
+        $this->ensurePricingPlanHighlightIntegrity();
+
+        $plans = $this->getFormattedPricingPlans();
+        $stats = $this->buildPricingPlanStats($plans);
+        $updatedPlan = null;
+
+        foreach ($plans as $plan) {
+            if ($plan['id'] === $planId) {
+                $updatedPlan = $plan;
+                break;
+            }
+        }
+
+        $this->json([
+            'success' => true,
+            'message' => 'Pricing plan updated successfully.',
+            'plan' => $updatedPlan,
+            'plans' => $plans,
+            'stats' => $stats
+        ]);
+    }
+
+    public function deletePricingPlan($id) {
+        $this->userModel->requireAuth();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json([
+                'success' => false,
+                'message' => 'Invalid request method.'
+            ], 405);
+            return;
+        }
+
+        $planId = (int)$id;
+        if ($planId <= 0) {
+            $this->json([
+                'success' => false,
+                'message' => 'Pricing plan not found.'
+            ], 404);
+            return;
+        }
+
+        $existing = $this->pricingPlanModel->find($planId);
+        if (!$existing) {
+            $this->json([
+                'success' => false,
+                'message' => 'Pricing plan not found.'
+            ], 404);
+            return;
+        }
+
+        try {
+            $this->pricingPlanModel->delete($planId);
+        } catch (Exception $exception) {
+            error_log('Failed to delete pricing plan: ' . $exception->getMessage());
+            $this->json([
+                'success' => false,
+                'message' => 'Unable to delete the pricing plan. Please try again.'
+            ], 500);
+            return;
+        }
+
+        if (!empty($existing['highlight'])) {
+            $this->ensurePricingPlanHighlightIntegrity();
+        }
+
+        $plans = $this->getFormattedPricingPlans();
+        $stats = $this->buildPricingPlanStats($plans);
+
+        $this->json([
+            'success' => true,
+            'message' => 'Pricing plan removed.',
+            'plans' => $plans,
+            'stats' => $stats
+        ]);
+    }
+
+    public function togglePricingPlan($id) {
+        $this->userModel->requireAuth();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json([
+                'success' => false,
+                'message' => 'Invalid request method.'
+            ], 405);
+            return;
+        }
+
+        $planId = (int)$id;
+        if ($planId <= 0) {
+            $this->json([
+                'success' => false,
+                'message' => 'Pricing plan not found.'
+            ], 404);
+            return;
+        }
+
+        $this->json([
+            'success' => false,
+            'message' => 'Visibility updates are managed when editing the plan.'
+        ], 405);
+    }
+
+    public function highlightPricingPlan($id) {
+        $this->userModel->requireAuth();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json([
+                'success' => false,
+                'message' => 'Invalid request method.'
+            ], 405);
+            return;
+        }
+
+        $planId = (int)$id;
+        if ($planId <= 0) {
+            $this->json([
+                'success' => false,
+                'message' => 'Pricing plan not found.'
+            ], 404);
+            return;
+        }
+
+        $existing = $this->pricingPlanModel->findWithFeatures($planId);
+        if (!$existing) {
+            $this->json([
+                'success' => false,
+                'message' => 'Pricing plan not found.'
+            ], 404);
+            return;
+        }
+
+        $shouldHighlight = isset($_POST['highlight']) ? (int)$_POST['highlight'] === 1 : true;
+
+        try {
+            if ($shouldHighlight) {
+                $this->pricingPlanModel->updateHighlight($planId);
+            } else {
+                $this->pricingPlanModel->clearHighlight($planId);
+                $this->ensurePricingPlanHighlightIntegrity();
+            }
+        } catch (Exception $exception) {
+            error_log('Failed to highlight pricing plan: ' . $exception->getMessage());
+            $this->json([
+                'success' => false,
+                'message' => 'Unable to highlight the selected plan. Please try again.'
+            ], 500);
+            return;
+        }
+
+        $plans = $this->getFormattedPricingPlans();
+        $stats = $this->buildPricingPlanStats($plans);
+
+        $highlightedPlan = null;
+        foreach ($plans as $plan) {
+            if ($plan['id'] === $planId) {
+                $highlightedPlan = $plan;
+                break;
+            }
+        }
+
+        $this->json([
+            'success' => true,
+            'message' => $shouldHighlight ? 'Highlighted plan updated.' : 'Plan highlight cleared.',
+            'plan' => $highlightedPlan,
+            'plans' => $plans,
+            'stats' => $stats
+        ]);
+    }
+
+    public function reorderPricingPlans() {
+        $this->userModel->requireAuth();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json([
+                'success' => false,
+                'message' => 'Invalid request method.'
+            ], 405);
+            return;
+        }
+
+        $orderPayload = $_POST['order'] ?? '[]';
+        $orderedIds = json_decode($orderPayload, true);
+
+        if (!is_array($orderedIds) || empty($orderedIds)) {
+            $this->json([
+                'success' => false,
+                'message' => 'Provide the new plan order.'
+            ], 422);
+            return;
+        }
+
+        $orderedIds = array_map('intval', $orderedIds);
+        $orderedIds = array_filter($orderedIds, static fn($value) => $value > 0);
+
+        if (empty($orderedIds)) {
+            $this->json([
+                'success' => false,
+                'message' => 'Provide the new plan order.'
+            ], 422);
+            return;
+        }
+
+        try {
+            $this->pricingPlanModel->reorder(array_values($orderedIds));
+        } catch (Exception $exception) {
+            error_log('Failed to reorder pricing plans: ' . $exception->getMessage());
+            $this->json([
+                'success' => false,
+                'message' => 'Unable to save the new plan order.'
+            ], 500);
+            return;
+        }
+
+        $plans = $this->getFormattedPricingPlans();
+        $stats = $this->buildPricingPlanStats($plans);
+
+        $this->json([
+            'success' => true,
+            'message' => 'Plan order updated.',
+            'plans' => $plans,
+            'stats' => $stats
+        ]);
+    }
+
+    private function getFormattedPricingPlans(): array {
+        $records = $this->pricingPlanModel->allForManager();
+        return array_map([$this, 'formatPricingPlanForManager'], $records);
+    }
+
+    private function formatPricingPlanForManager(array $plan): array {
+        $priceAmount = isset($plan['price_amount']) ? (float)$plan['price_amount'] : 0.0;
+        $priceAmount = round($priceAmount, 2);
+        $hasPrice = $priceAmount > 0;
+        $priceDisplay = $hasPrice ? ('$' . number_format($priceAmount, (fmod($priceAmount, 1.0) === 0.0 ? 0 : 2))) : '';
+
+        $featuresText = trim((string)($plan['features'] ?? ''));
+        $featuresList = $this->collectPricingPlanFeatures($featuresText);
+
+        $ctaLabel = trim((string)($plan['cta_label'] ?? 'Start Project'));
+        if ($ctaLabel === '') {
+            $ctaLabel = 'Start Project';
+        }
+
+        $ctaUrl = $this->normalizePricingPlanUrl((string)($plan['cta_url'] ?? '/contact'));
+        $ctaResolved = navbar_build_nav_url($ctaUrl);
+
+        return [
+            'id' => (int)($plan['id'] ?? 0),
+            'title' => (string)($plan['title'] ?? ''),
+            'subtitle' => (string)($plan['subtitle'] ?? ''),
+            'price_amount' => $hasPrice ? $priceAmount : null,
+            'price_period' => (string)($plan['price_period'] ?? ''),
+            'price_display' => $priceDisplay,
+            'badge_text' => (string)($plan['badge_text'] ?? ''),
+            'cta_label' => $ctaLabel,
+            'cta_url' => $ctaUrl,
+            'cta_url_resolved' => $ctaResolved,
+            'features_text' => $featuresText,
+            'features_list' => $featuresList,
+            'highlight' => !empty($plan['highlight']) ? 1 : 0,
+            'visible' => !empty($plan['visible']) ? 1 : 0,
+            'sort_order' => (int)($plan['sort_order'] ?? 0),
+            'created_at' => $plan['created_at'] ?? null,
+            'updated_at' => $plan['updated_at'] ?? null
+        ];
+    }
+
+    private function buildPricingPlanStats(array $plans): array {
+        $total = count($plans);
+        $visible = 0;
+        $highlighted = 0;
+        $highlightedId = null;
+
+        foreach ($plans as $plan) {
+            if (!empty($plan['visible'])) {
+                $visible++;
+            }
+
+            if (!empty($plan['highlight'])) {
+                $highlighted++;
+                if ($highlightedId === null) {
+                    $highlightedId = $plan['id'];
+                }
+            }
+        }
+
+        return [
+            'total' => $total,
+            'visible' => $visible,
+            'hidden' => max(0, $total - $visible),
+            'highlighted' => $highlighted,
+            'highlighted_id' => $highlightedId
+        ];
+    }
+
+    private function collectPricingPlanFeatures(string $features): array {
+        if ($features === '') {
+            return [];
+        }
+
+        $lines = preg_split('/\r\n|\r|\n/', $features);
+        if (!is_array($lines)) {
+            return [];
+        }
+
+        $lines = array_map(static function ($line) {
+            return trim((string)$line);
+        }, $lines);
+
+        $lines = array_filter($lines, static function ($line) {
+            return $line !== '';
+        });
+
+        return array_values($lines);
+    }
+
+    private function sanitizePricingPlanInput(array $source, array $existing = []): array {
+        $title = trim((string)($source['title'] ?? ($existing['title'] ?? '')));
+        $title = mb_substr($title, 0, 255);
+
+        $subtitle = trim((string)($source['subtitle'] ?? ($existing['subtitle'] ?? '')));
+        $subtitle = mb_substr($subtitle, 0, 255);
+
+        $priceAmount = $this->normalizePricingPlanPrice($source['price_amount'] ?? ($existing['price_amount'] ?? null));
+
+        $pricePeriod = trim((string)($source['price_period'] ?? ($existing['price_period'] ?? '')));
+        $pricePeriod = mb_substr($pricePeriod, 0, 50);
+
+        $badgeText = trim((string)($source['badge_text'] ?? ($existing['badge_text'] ?? '')));
+        $badgeText = mb_substr($badgeText, 0, 120);
+
+        $ctaLabel = trim((string)($source['cta_label'] ?? ($existing['cta_label'] ?? 'Start Project')));
+        $ctaLabel = mb_substr($ctaLabel, 0, 120);
+
+        $ctaUrl = trim((string)($source['cta_url'] ?? ($existing['cta_url'] ?? '/contact')));
+        $ctaUrl = mb_substr($ctaUrl, 0, 255);
+        $ctaUrl = $this->normalizePricingPlanUrl($ctaUrl);
+
+        $featuresRaw = $source['features'] ?? ($source['features_text'] ?? ($existing['features'] ?? ''));
+        $featuresText = $this->normalizePricingPlanFeatures((string)$featuresRaw);
+
+        $visibleRaw = $source['visible'] ?? ($existing['visible'] ?? 1);
+        $visible = $this->normalizeBooleanInput($visibleRaw, true);
+
+        $highlightRaw = $source['highlight'] ?? ($existing['highlight'] ?? 0);
+        $highlight = $this->normalizeBooleanInput($highlightRaw, false);
+
+        return [
+            'title' => $title,
+            'subtitle' => $subtitle,
+            'price_amount' => $priceAmount,
+            'price_period' => $pricePeriod,
+            'badge_text' => $badgeText,
+            'cta_label' => $ctaLabel,
+            'cta_url' => $ctaUrl,
+            'features_text' => $featuresText,
+            'visible' => $visible,
+            'highlight' => $highlight
+        ];
+    }
+
+    private function validatePricingPlanInput(array $input): array {
+        $errors = [];
+
+        if (mb_strlen($input['title']) < 3) {
+            $errors[] = 'Plan title must be at least 3 characters long.';
+        }
+
+        if ($input['badge_text'] !== '' && mb_strlen($input['badge_text']) < 3) {
+            $errors[] = 'Badge text must be at least 3 characters or leave it blank.';
+        }
+
+        if ($input['price_period'] !== '' && mb_strlen($input['price_period']) < 2) {
+            $errors[] = 'Price period must be at least 2 characters or leave it blank.';
+        }
+
+        if ($input['cta_label'] === '') {
+            $errors[] = 'CTA label cannot be empty.';
+        }
+
+        if ($input['price_amount'] !== null && $input['price_amount'] < 0) {
+            $errors[] = 'Price amount cannot be negative.';
+        }
+
+        if ($input['features_text'] !== '') {
+            $features = $this->collectPricingPlanFeatures($input['features_text']);
+            if (count($features) > 20) {
+                $errors[] = 'Limit each plan to 20 features or fewer.';
+            }
+        }
+
+        return $errors;
+    }
+
+    private function normalizePricingPlanPrice($value): ?float {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_string($value)) {
+            $value = str_replace([',', ' '], '', $value);
+        }
+
+        if (!is_numeric($value)) {
+            return null;
+        }
+
+        $amount = (float)$value;
+        if (!is_finite($amount)) {
+            return null;
+        }
+
+        return round($amount, 2);
+    }
+
+    private function normalizePricingPlanFeatures(string $features): string {
+        if ($features === '') {
+            return '';
+        }
+
+        $lines = preg_split('/\r\n|\r|\n/', $features);
+        if (!is_array($lines)) {
+            return '';
+        }
+
+        $lines = array_map(static function ($line) {
+            return trim((string)$line);
+        }, $lines);
+
+        $lines = array_filter($lines, static function ($line) {
+            return $line !== '';
+        });
+
+        if (empty($lines)) {
+            return '';
+        }
+
+        return implode("\n", $lines);
+    }
+
+    private function normalizeBooleanInput($value, bool $default): bool {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_numeric($value)) {
+            return (int)$value === 1;
+        }
+
+        if (is_string($value)) {
+            $normalized = strtolower(trim($value));
+            if (in_array($normalized, ['1', 'true', 'yes', 'on'], true)) {
+                return true;
+            }
+
+            if (in_array($normalized, ['0', 'false', 'no', 'off'], true)) {
+                return false;
+            }
+        }
+
+        return $default;
+    }
+
+    private function normalizePricingPlanUrl(string $url): string {
+        if ($url === '') {
+            return '/contact';
+        }
+
+        if (strpos($url, 'http://') === 0 || strpos($url, 'https://') === 0 || strpos($url, '/') === 0) {
+            return $url;
+        }
+
+        return '/' . ltrim($url, '/');
+    }
+
+    private function ensurePricingPlanHighlightIntegrity(): void {
+        $plans = $this->pricingPlanModel->allForManager();
+        if (empty($plans)) {
+            return;
+        }
+
+        $highlighted = null;
+        $firstVisible = null;
+
+        foreach ($plans as $plan) {
+            if ($firstVisible === null && !empty($plan['visible'])) {
+                $firstVisible = $plan;
+            }
+
+            if (!empty($plan['highlight'])) {
+                $highlighted = $plan;
+                break;
+            }
+        }
+
+        if ($highlighted === null || !empty($highlighted['visible'])) {
+            return;
+        }
+
+        if ($firstVisible === null || empty($firstVisible['id'])) {
+            return;
+        }
+
+        try {
+            $this->pricingPlanModel->updateHighlight((int)$firstVisible['id']);
+        } catch (Throwable $throwable) {
+            error_log('Failed to transfer pricing plan highlight: ' . $throwable->getMessage());
+        }
     }
     
     // UTILITY METHODS

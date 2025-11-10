@@ -99,7 +99,7 @@ class HomeController extends BaseController {
         
     $services = $this->contentRepository ? $this->contentRepository->getActiveServices() : $this->serviceModel->getActive();
     $processSteps = $this->contentRepository ? $this->contentRepository->getServiceProcessSteps() : [];
-    $pricingPackages = $this->contentRepository ? $this->contentRepository->getPricingPackages() : [];
+    $pricingPlans = $this->contentRepository ? $this->contentRepository->getPricingPlans() : [];
     $faqs = $this->contentRepository ? $this->contentRepository->getFaq('services') : [];
     $testimonials = $this->contentRepository ? $this->contentRepository->getFeaturedTestimonials(3) : $this->testimonialModel->getFeatured(3);
         
@@ -108,7 +108,7 @@ class HomeController extends BaseController {
             'meta_description' => $pageMeta['meta_description'] ?? $defaultMeta['meta_description'],
             'services' => $services,
             'process_steps' => $processSteps,
-            'pricing_packages' => $pricingPackages,
+            'pricing_plans' => $pricingPlans,
             'faqs' => $faqs,
             'featured_testimonials' => $testimonials,
             'page_content' => $pageMeta['content'] ?? '',

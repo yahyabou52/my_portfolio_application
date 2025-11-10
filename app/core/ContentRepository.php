@@ -6,8 +6,7 @@ require_once ROOT_PATH . '/app/models/HeroStat.php';
 require_once ROOT_PATH . '/app/models/Service.php';
 require_once ROOT_PATH . '/app/models/ServiceFeature.php';
 require_once ROOT_PATH . '/app/models/ServiceProcessStep.php';
-require_once ROOT_PATH . '/app/models/PricingPackage.php';
-require_once ROOT_PATH . '/app/models/PricingPackageFeature.php';
+require_once ROOT_PATH . '/app/models/PricingPlan.php';
 require_once ROOT_PATH . '/app/models/Project.php';
 require_once ROOT_PATH . '/app/models/ProjectImage.php';
 require_once ROOT_PATH . '/app/models/Testimonial.php';
@@ -24,8 +23,7 @@ class ContentRepository {
     private $serviceModel;
     private $serviceFeatureModel;
     private $serviceProcessModel;
-    private $pricingPackageModel;
-    private $pricingFeatureModel;
+    private $pricingPlanModel;
     private $projectModel;
     private $projectImageModel;
     private $testimonialModel;
@@ -42,9 +40,8 @@ class ContentRepository {
         $this->heroStatModel = new HeroStat();
         $this->serviceModel = new Service();
         $this->serviceFeatureModel = new ServiceFeature();
-        $this->serviceProcessModel = new ServiceProcessStep();
-        $this->pricingPackageModel = new PricingPackage();
-        $this->pricingFeatureModel = new PricingPackageFeature();
+    $this->serviceProcessModel = new ServiceProcessStep();
+    $this->pricingPlanModel = new PricingPlan();
         $this->projectModel = new Project();
         $this->projectImageModel = new ProjectImage();
         $this->testimonialModel = new Testimonial();
@@ -337,17 +334,8 @@ class ContentRepository {
         }, $steps);
     }
 
-    public function getPricingPackages(): array {
-        $packages = $this->pricingPackageModel->getPublished();
-        $mapped = [];
-
-        foreach ($packages as $package) {
-            $features = $this->pricingFeatureModel->getByPackage($package['id']);
-            $package['features'] = $features;
-            $mapped[] = $package;
-        }
-
-        return $mapped;
+    public function getPricingPlans(): array {
+        return $this->pricingPlanModel->allVisible();
     }
 
     private function mapServices(array $services): array {

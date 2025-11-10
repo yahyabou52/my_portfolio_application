@@ -10,7 +10,8 @@
         initializeHomePageCtaManager();
         initializeServicesManager();
         initializeServiceFeaturesManager();
-    initializeServiceProcessManager();
+        initializeServiceProcessManager();
+        initializePricingPlanManager();
         initializeServicesPreviewManager();
         initializeSkillsPreviewManager();
         initializeAboutHighlights();
@@ -565,7 +566,7 @@ function setupSortableList(list) {
         }
         dragSource = null;
         syncOrder();
-        list.dispatchEvent(new CustomEvent('sortable:reordered', { bubbles: true })); // notify listeners such as previews
+        list.dispatchEvent(new CustomEvent('sortable:reordered', { bubbles: true }));
     }, true);
 
     list.addEventListener('dragover', function (event) {
@@ -5133,6 +5134,1049 @@ function initializeServiceProcessManager() {
             return text || '';
         }
         return text.slice(0, limit - 1) + '…';
+    }
+}
+
+function initializePricingPlanManager() {
+    const container = document.querySelector('[data-pricing-plan-manager]');
+    if (!container) {
+        return;
+    }
+
+    const list = container.querySelector('[data-pricing-plan-list]');
+    const emptyState = container.querySelector('[data-pricing-plan-empty]');
+    const previewGrid = container.querySelector('[data-pricing-plan-preview]');
+    const previewEmpty = container.querySelector('[data-pricing-plan-preview-empty]');
+    const feedback = container.querySelector('[data-pricing-plan-feedback]');
+    const highlightSummary = container.querySelector('[data-pricing-plan-highlight-summary]');
+    const refreshButton = container.querySelector('[data-pricing-plan-refresh]');
+    const addButton = container.querySelector('[data-pricing-plan-add]');
+    const modalElement = document.getElementById('pricingPlanModal');
+    const statNodes = container.querySelectorAll('[data-pricing-plan-stat]');
+    const listTemplate = document.getElementById('pricingPlanListItemTemplate');
+    const previewTemplate = document.getElementById('pricingPlanPreviewTemplate');
+
+    if (!list || !previewGrid || !modalElement || !listTemplate || !listTemplate.content || !previewTemplate || !previewTemplate.content) {
+        return;
+    }
+
+    const modalForm = modalElement.querySelector('[data-pricing-plan-form]');
+    const modalTitle = modalElement.querySelector('[data-pricing-plan-modal-title]');
+    const modalError = modalElement.querySelector('[data-pricing-plan-modal-error]');
+    const modalSubmit = modalElement.querySelector('[data-pricing-plan-modal-submit]');
+    const modalCancelButtons = modalElement.querySelectorAll('[data-pricing-plan-modal-cancel]');
+
+    const fieldMap = {
+        title: modalElement.querySelector('[data-pricing-field="title"]'),
+        subtitle: modalElement.querySelector('[data-pricing-field="subtitle"]'),
+        price_amount: modalElement.querySelector('[data-pricing-field="price_amount"]'),
+        price_period: modalElement.querySelector('[data-pricing-field="price_period"]'),
+        badge_text: modalElement.querySelector('[data-pricing-field="badge_text"]'),
+        cta_label: modalElement.querySelector('[data-pricing-field="cta_label"]'),
+        cta_url: modalElement.querySelector('[data-pricing-field="cta_url"]'),
+        features: modalElement.querySelector('[data-pricing-field="features"]'),
+        visible: modalElement.querySelector('[data-pricing-field="visible"]')
+    };
+
+    if (!modalForm || !fieldMap.title || !fieldMap.cta_label || !fieldMap.features) {
+        return;
+    }
+
+    const modalInstance = typeof bootstrap !== 'undefined' && bootstrap.Modal
+        ? new bootstrap.Modal(modalElement)
+        : null;
+
+    const listTemplateContent = listTemplate.content.firstElementChild;
+    const previewTemplateContent = previewTemplate.content.firstElementChild;
+
+    if (!listTemplateContent || !previewTemplateContent) {
+        return;
+    }
+
+    const routes = parseRoutes(container.dataset.pricingPlanRoutes || '{}');
+
+    const state = {
+        plans: normalizePlans(parsePlans(container.dataset.pricingPlanInitial || '[]')),
+        stats: null,
+        editingId: null,
+        isSubmitting: false,
+        reorderTimer: null,
+        reorderController: null,
+        messageTimer: null
+    };
+
+    state.stats = computeStats(state.plans);
+    renderAll();
+
+    if (addButton) {
+        addButton.addEventListener('click', function () {
+            openCreateModal();
+        });
+    }
+
+    if (refreshButton) {
+        refreshButton.addEventListener('click', function () {
+            refreshPlans();
+        });
+    }
+
+    modalCancelButtons.forEach(function (button) {
+        button.addEventListener('click', function (event) {
+            event.preventDefault();
+            closeModal();
+        });
+    });
+
+    modalElement.addEventListener('hidden.bs.modal', function () {
+        resetModal();
+    });
+
+    if (!modalInstance) {
+        modalElement.addEventListener('transitionend', function () {
+            if (!modalElement.classList.contains('show')) {
+                resetModal();
+            }
+        });
+    }
+
+    modalForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        handleModalSubmit();
+    });
+
+    list.addEventListener('click', function (event) {
+        const highlightButton = event.target.closest('[data-plan-highlight]');
+        if (highlightButton) {
+            const item = highlightButton.closest('[data-plan-item]');
+            if (item) {
+                const planId = Number(item.dataset.planId || '0');
+                if (planId) {
+                    highlightPlan(planId, highlightButton);
+                }
+            }
+            return;
+        }
+
+        const editButton = event.target.closest('[data-plan-edit]');
+        if (editButton) {
+            const item = editButton.closest('[data-plan-item]');
+            if (item) {
+                const planId = Number(item.dataset.planId || '0');
+                if (planId) {
+                    openEditModal(planId);
+                }
+            }
+            return;
+        }
+
+        const deleteButton = event.target.closest('[data-plan-delete]');
+        if (deleteButton) {
+            const item = deleteButton.closest('[data-plan-item]');
+            if (item) {
+                const planId = Number(item.dataset.planId || '0');
+                if (planId) {
+                    deletePlan(planId, deleteButton);
+                }
+            }
+        }
+    });
+
+    list.addEventListener('change', function (event) {
+        const toggle = event.target.closest('[data-plan-visible-toggle]');
+        if (toggle) {
+            const item = toggle.closest('[data-plan-item]');
+            if (item) {
+                const planId = Number(item.dataset.planId || '0');
+                if (planId) {
+                    togglePlanVisibility(planId, toggle);
+                }
+            }
+        }
+    });
+
+    list.addEventListener('sortable:reordered', function () {
+        const order = getCurrentOrder();
+        applyOrderToState(order);
+        renderPreview();
+        updateHighlightSummary();
+        scheduleReorder(order);
+    });
+
+    function parseRoutes(raw) {
+        if (!raw) {
+            return {};
+        }
+        try {
+            const parsed = JSON.parse(raw);
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch (error) {
+            console.warn('Failed to parse pricing plan routes', error);
+            return {};
+        }
+    }
+
+    function parsePlans(raw) {
+        if (!raw) {
+            return [];
+        }
+        try {
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+            console.warn('Failed to parse pricing plans', error);
+            return [];
+        }
+    }
+
+    function normalizePlans(plans) {
+        return plans
+            .map(normalizePlan)
+            .filter(Boolean)
+            .sort(function (a, b) {
+                return a.sort_order - b.sort_order;
+            });
+    }
+
+    function normalizePlan(plan) {
+        if (!plan) {
+            return null;
+        }
+
+        const id = Number(plan.id || plan.plan_id || 0);
+        if (!id) {
+            return null;
+        }
+
+        const features = Array.isArray(plan.features_list) ? plan.features_list : [];
+        const normalizedFeatures = features.map(function (feature) {
+            return String(feature || '').trim();
+        }).filter(function (feature) {
+            return feature.length > 0;
+        });
+
+        const priceAmount = plan.price_amount !== null && typeof plan.price_amount !== 'undefined'
+            ? Number(plan.price_amount)
+            : null;
+
+        return {
+            id: id,
+            title: String(plan.title || 'Untitled Plan').trim(),
+            subtitle: String(plan.subtitle || '').trim(),
+            price_amount: priceAmount,
+            price_period: String(plan.price_period || '').trim(),
+            price_display: String(plan.price_display || '').trim(),
+            badge_text: String(plan.badge_text || '').trim(),
+            cta_label: String(plan.cta_label || 'Start Project').trim(),
+            cta_url: String(plan.cta_url || '/contact').trim(),
+            cta_url_resolved: String(plan.cta_url_resolved || plan.cta_url || '/contact').trim(),
+            features_text: String(plan.features_text || '').trim(),
+            features_list: normalizedFeatures,
+            highlight: Number(plan.highlight || 0) === 1 ? 1 : 0,
+            visible: Number(plan.visible || 0) === 1 ? 1 : 0,
+            sort_order: Number(plan.sort_order || 0),
+            updated_at: plan.updated_at || null
+        };
+    }
+
+    function computeStats(plans) {
+        const stats = {
+            total: plans.length,
+            visible: 0,
+            hidden: 0,
+            highlighted: 0,
+            highlighted_id: null
+        };
+
+        plans.forEach(function (plan) {
+            if (plan.visible) {
+                stats.visible += 1;
+            } else {
+                stats.hidden += 1;
+            }
+
+            if (plan.highlight) {
+                stats.highlighted += 1;
+                if (stats.highlighted_id === null) {
+                    stats.highlighted_id = plan.id;
+                }
+            }
+        });
+
+        return stats;
+    }
+
+    function renderAll() {
+        renderList();
+        renderPreview();
+        updateStatsView(state.stats || computeStats(state.plans));
+        updateHighlightSummary();
+        updateEmptyStates();
+    }
+
+    function renderList() {
+        list.innerHTML = '';
+
+        if (!state.plans.length) {
+            return;
+        }
+
+        state.plans.forEach(function (plan) {
+            const item = listTemplateContent.cloneNode(true);
+            item.dataset.planId = String(plan.id);
+            item.dataset.sortableId = String(plan.id);
+
+            const title = item.querySelector('[data-plan-title]');
+            const subtitle = item.querySelector('[data-plan-subtitle]');
+            const featureSummary = item.querySelector('[data-plan-feature-summary]');
+            const price = item.querySelector('[data-plan-price]');
+            const badge = item.querySelector('[data-plan-badge]');
+            const highlightBadge = item.querySelector('[data-plan-highlight-badge]');
+            const hiddenBadge = item.querySelector('[data-plan-hidden-badge]');
+            const highlightButton = item.querySelector('[data-plan-highlight]');
+
+            if (title) {
+                title.textContent = plan.title || 'Untitled Plan';
+            }
+
+            if (subtitle) {
+                subtitle.textContent = plan.subtitle;
+                subtitle.classList.toggle('d-none', plan.subtitle === '');
+            }
+
+            if (featureSummary) {
+                featureSummary.innerHTML = '';
+                if (plan.features_list.length) {
+                    plan.features_list.slice(0, 3).forEach(function (feature) {
+                        const span = document.createElement('span');
+                        span.className = 'badge bg-light text-muted border';
+                        span.textContent = feature;
+                        featureSummary.appendChild(span);
+                    });
+
+                    if (plan.features_list.length > 3) {
+                        const more = document.createElement('span');
+                        more.className = 'badge bg-light text-muted border';
+                        more.textContent = '+' + (plan.features_list.length - 3) + ' more';
+                        featureSummary.appendChild(more);
+                    }
+                } else {
+                    const empty = document.createElement('span');
+                    empty.className = 'text-muted';
+                    empty.textContent = 'No features listed.';
+                    featureSummary.appendChild(empty);
+                }
+            }
+
+            if (price) {
+                if (plan.price_display) {
+                    price.innerHTML = escapeHtml(plan.price_display);
+                    if (plan.price_period) {
+                        price.innerHTML += '<div class="text-muted small">' + escapeHtml(plan.price_period) + '</div>';
+                    }
+                } else {
+                    price.innerHTML = '<span class="text-muted small">Custom pricing</span>';
+                }
+            }
+
+            if (badge) {
+                badge.textContent = plan.badge_text;
+                badge.classList.toggle('d-none', plan.badge_text === '');
+            }
+
+            if (highlightBadge) {
+                highlightBadge.classList.toggle('d-none', plan.highlight !== 1);
+            }
+
+            if (hiddenBadge) {
+                hiddenBadge.classList.toggle('d-none', plan.visible === 1);
+            }
+
+            if (highlightButton) {
+                const isHighlighted = plan.highlight === 1;
+                highlightButton.classList.toggle('btn-warning', isHighlighted);
+                highlightButton.classList.toggle('btn-outline-warning', !isHighlighted);
+                const icon = highlightButton.querySelector('i');
+                if (icon) {
+                    icon.className = isHighlighted ? 'bi bi-star-fill' : 'bi bi-star';
+                }
+                highlightButton.setAttribute('aria-pressed', isHighlighted ? 'true' : 'false');
+                highlightButton.title = isHighlighted
+                    ? 'Click to clear the highlight from this plan.'
+                    : 'Click to highlight this plan on the Services page.';
+            }
+
+            list.appendChild(item);
+        });
+    }
+
+    function renderPreview() {
+        previewGrid.innerHTML = '';
+
+        if (!state.plans.length) {
+            return;
+        }
+
+        state.plans.forEach(function (plan) {
+            const fragment = previewTemplateContent.cloneNode(true);
+            const title = fragment.querySelector('[data-preview-title]');
+            const subtitle = fragment.querySelector('[data-preview-subtitle]');
+            const price = fragment.querySelector('[data-preview-price]');
+            const period = fragment.querySelector('[data-preview-period]');
+            const highlightBadge = fragment.querySelector('[data-preview-highlight]');
+            const hiddenBadge = fragment.querySelector('[data-preview-hidden]');
+            const badge = fragment.querySelector('[data-preview-badge]');
+            const featuresList = fragment.querySelector('[data-preview-features]');
+            const cta = fragment.querySelector('[data-preview-cta]');
+            const card = fragment.querySelector('.card');
+
+            if (title) {
+                title.textContent = plan.title || 'Untitled Plan';
+            }
+
+            if (subtitle) {
+                subtitle.textContent = plan.subtitle;
+                subtitle.classList.toggle('d-none', plan.subtitle === '');
+            }
+
+            if (price) {
+                price.textContent = plan.price_display || '';
+                price.classList.toggle('d-none', plan.price_display === '');
+            }
+
+            if (period) {
+                period.textContent = plan.price_period;
+                period.classList.toggle('d-none', plan.price_period === '');
+            }
+
+            if (highlightBadge) {
+                highlightBadge.classList.toggle('d-none', plan.highlight !== 1);
+            }
+
+            if (hiddenBadge) {
+                hiddenBadge.classList.toggle('d-none', plan.visible === 1);
+            }
+
+            if (badge) {
+                badge.textContent = plan.badge_text;
+                badge.classList.toggle('d-none', plan.badge_text === '');
+            }
+
+            if (featuresList) {
+                featuresList.innerHTML = '';
+                if (plan.features_list.length) {
+                    plan.features_list.forEach(function (feature) {
+                        const li = document.createElement('li');
+                        li.textContent = feature;
+                        featuresList.appendChild(li);
+                    });
+                } else {
+                    const li = document.createElement('li');
+                    li.className = 'text-muted';
+                    li.textContent = 'Add feature points to highlight value.';
+                    featuresList.appendChild(li);
+                }
+            }
+
+            if (cta) {
+                cta.textContent = plan.cta_label || 'Start Project';
+                cta.href = plan.cta_url_resolved || plan.cta_url || '#';
+            }
+
+            if (card) {
+                card.classList.toggle('border', true);
+                card.classList.toggle('border-primary', plan.highlight === 1);
+                card.classList.toggle('shadow-sm', plan.highlight !== 1);
+                card.classList.toggle('shadow', plan.highlight === 1);
+                card.classList.toggle('opacity-50', plan.visible !== 1);
+            }
+
+            previewGrid.appendChild(fragment);
+        });
+    }
+
+    function updateStatsView(stats) {
+        state.stats = stats;
+
+        statNodes.forEach(function (node) {
+            const key = node.dataset.pricingPlanStat;
+            if (!key || !(key in stats)) {
+                return;
+            }
+            node.textContent = String(stats[key]);
+        });
+    }
+
+    function updateHighlightSummary() {
+        if (!highlightSummary) {
+            return;
+        }
+
+        const stats = state.stats || computeStats(state.plans);
+        const highlightedPlan = stats.highlighted_id
+            ? state.plans.find(function (plan) {
+                return plan.id === stats.highlighted_id;
+            })
+            : null;
+
+        if (highlightedPlan) {
+            highlightSummary.innerHTML = '<i class="bi bi-star-fill me-1"></i>Highlighted plan: ' + escapeHtml(highlightedPlan.title) + ' — click the star again to clear it.';
+        } else if (state.plans.length) {
+            highlightSummary.innerHTML = '<i class="bi bi-star me-1"></i>Select a plan to highlight it on the Services page.';
+        } else {
+            highlightSummary.innerHTML = '<i class="bi bi-star me-1"></i>Add a plan to enable highlighting.';
+        }
+    }
+
+    function updateEmptyStates() {
+        const hasPlans = state.plans.length > 0;
+        if (emptyState) {
+            emptyState.classList.toggle('d-none', hasPlans);
+        }
+        if (previewEmpty) {
+            previewEmpty.classList.toggle('d-none', hasPlans);
+        }
+    }
+
+    function handleModalSubmit() {
+        if (state.isSubmitting) {
+            return;
+        }
+
+        const payload = collectModalValues();
+        if (payload.errors.length) {
+            showModalError(payload.errors.join(' '));
+            return;
+        }
+
+        hideModalError();
+
+        const isEdit = state.editingId !== null;
+        const endpoint = isEdit
+            ? buildRoute(routes.update_template, state.editingId)
+            : routes.store;
+
+        if (!endpoint) {
+            showModalError('Missing endpoint for this action.');
+            return;
+        }
+
+        state.isSubmitting = true;
+        setButtonLoading(modalSubmit, true);
+
+        const formData = buildFormData(payload.values);
+
+        fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: formData,
+            credentials: 'same-origin'
+        })
+            .then(parseManagerResponse)
+            .then(function (response) {
+                if (!response.ok || !response.data || response.data.success === false) {
+                    const message = response.data && response.data.message ? response.data.message : 'Failed to save the pricing plan.';
+                    const errors = extractErrors(response.data);
+                    if (errors.length) {
+                        showModalError(errors.join(' '));
+                    } else {
+                        showModalError(message);
+                    }
+                    throw new Error(message);
+                }
+
+                applyServerState(response.data.plans, response.data.stats);
+                closeModal();
+                setFeedback(response.data.message || 'Pricing plan saved.', 'success');
+            })
+            .catch(function (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+                showModalError(error && error.message ? error.message : 'Unable to save the pricing plan.');
+            })
+            .finally(function () {
+                state.isSubmitting = false;
+                setButtonLoading(modalSubmit, false);
+            });
+    }
+
+    function buildFormData(values) {
+        const formData = new FormData();
+        formData.append('title', values.title);
+        formData.append('subtitle', values.subtitle);
+        formData.append('price_amount', values.price_amount);
+        formData.append('price_period', values.price_period);
+        formData.append('badge_text', values.badge_text);
+        formData.append('cta_label', values.cta_label);
+        formData.append('cta_url', values.cta_url);
+        formData.append('features', values.features);
+        formData.append('visible', values.visible ? '1' : '0');
+        return formData;
+    }
+
+    function collectModalValues() {
+        const values = {
+            title: fieldMap.title.value.trim(),
+            subtitle: fieldMap.subtitle ? fieldMap.subtitle.value.trim() : '',
+            price_amount: fieldMap.price_amount ? fieldMap.price_amount.value.trim() : '',
+            price_period: fieldMap.price_period ? fieldMap.price_period.value.trim() : '',
+            badge_text: fieldMap.badge_text ? fieldMap.badge_text.value.trim() : '',
+            cta_label: fieldMap.cta_label.value.trim(),
+            cta_url: fieldMap.cta_url ? fieldMap.cta_url.value.trim() : '',
+            features: fieldMap.features.value.replace(/\r\n/g, '\n'),
+            visible: fieldMap.visible ? fieldMap.visible.checked : true
+        };
+
+        const errors = [];
+        if (values.title.length < 3) {
+            errors.push('Plan title must be at least 3 characters long.');
+        }
+        if (values.cta_label === '') {
+            errors.push('CTA label is required.');
+        }
+
+        return { values: values, errors: errors };
+    }
+
+    function parseManagerResponse(response) {
+        const contentType = response.headers.get('content-type') || '';
+        const isJson = contentType.includes('application/json');
+        if (!isJson) {
+            return Promise.reject(new Error('Unexpected response format from the server.'));
+        }
+
+        return response.json().then(function (data) {
+            return { ok: response.ok, status: response.status, data: data };
+        });
+    }
+
+    function extractErrors(data) {
+        if (!data || !data.errors) {
+            return [];
+        }
+
+        if (Array.isArray(data.errors)) {
+            return data.errors.map(function (message) {
+                return String(message || '');
+            }).filter(function (message) {
+                return message.trim().length > 0;
+            });
+        }
+
+        if (typeof data.errors === 'object') {
+            return Object.keys(data.errors).map(function (key) {
+                const value = data.errors[key];
+                if (Array.isArray(value)) {
+                    return value.join(' ');
+                }
+                return String(value || '');
+            }).filter(function (message) {
+                return message.trim().length > 0;
+            });
+        }
+
+        return [];
+    }
+
+    function applyServerState(plans, stats) {
+        if (Array.isArray(plans)) {
+            state.plans = normalizePlans(plans);
+        }
+
+        if (stats && typeof stats === 'object') {
+            state.stats = stats;
+        } else {
+            state.stats = computeStats(state.plans);
+        }
+
+        syncDataset();
+        renderAll();
+    }
+
+    function syncDataset() {
+        try {
+            container.dataset.pricingPlanInitial = JSON.stringify(state.plans);
+        } catch (error) {
+            // ignore dataset sync failures
+        }
+    }
+
+    function openCreateModal() {
+        state.editingId = null;
+        resetModal();
+        if (modalTitle) {
+            modalTitle.textContent = 'Add Pricing Plan';
+        }
+        openModal();
+    }
+
+    function openEditModal(planId) {
+        const plan = getPlan(planId);
+        if (!plan) {
+            setFeedback('Pricing plan not found.', 'error');
+            return;
+        }
+
+        state.editingId = planId;
+        populateModal(plan);
+        if (modalTitle) {
+            modalTitle.textContent = 'Edit: ' + plan.title;
+        }
+        openModal();
+    }
+
+    function populateModal(plan) {
+        modalForm.reset();
+        hideModalError();
+
+        fieldMap.title.value = plan.title;
+        if (fieldMap.subtitle) {
+            fieldMap.subtitle.value = plan.subtitle;
+        }
+        if (fieldMap.price_amount) {
+            fieldMap.price_amount.value = plan.price_amount !== null && !isNaN(plan.price_amount)
+                ? String(plan.price_amount)
+                : '';
+        }
+        if (fieldMap.price_period) {
+            fieldMap.price_period.value = plan.price_period;
+        }
+        if (fieldMap.badge_text) {
+            fieldMap.badge_text.value = plan.badge_text;
+        }
+        fieldMap.cta_label.value = plan.cta_label;
+        if (fieldMap.cta_url) {
+            fieldMap.cta_url.value = plan.cta_url;
+        }
+        fieldMap.features.value = plan.features_text || '';
+        if (fieldMap.visible) {
+            fieldMap.visible.checked = plan.visible === 1;
+        }
+    }
+
+    function resetModal() {
+        modalForm.reset();
+        hideModalError();
+        state.editingId = null;
+        state.isSubmitting = false;
+        if (fieldMap.visible) {
+            fieldMap.visible.checked = true;
+        }
+        if (modalTitle) {
+            modalTitle.textContent = 'Add Pricing Plan';
+        }
+    }
+
+    function openModal() {
+        if (modalInstance) {
+            modalInstance.show();
+        } else {
+            modalElement.classList.add('show');
+            modalElement.style.display = 'block';
+        }
+    }
+
+    function closeModal() {
+        if (modalInstance) {
+            modalInstance.hide();
+        } else {
+            modalElement.classList.remove('show');
+            modalElement.style.display = 'none';
+            resetModal();
+        }
+    }
+
+    function showModalError(message) {
+        if (!modalError) {
+            return;
+        }
+        modalError.textContent = message;
+        modalError.classList.remove('d-none');
+    }
+
+    function hideModalError() {
+        if (!modalError) {
+            return;
+        }
+        modalError.textContent = '';
+        modalError.classList.add('d-none');
+    }
+
+    function highlightPlan(planId, button) {
+        const plan = getPlan(planId);
+        const shouldHighlight = !plan || plan.highlight !== 1;
+        const endpoint = buildRoute(routes.highlight_template, planId);
+        if (!endpoint) {
+            setFeedback('Highlight route not configured.', 'error');
+            return;
+        }
+
+        setButtonLoading(button, true);
+
+        const formData = new FormData();
+        formData.append('highlight', shouldHighlight ? '1' : '0');
+
+        fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: formData,
+            credentials: 'same-origin'
+        })
+            .then(parseManagerResponse)
+            .then(function (response) {
+                if (!response.ok || !response.data || response.data.success === false) {
+                    const message = response.data && response.data.message ? response.data.message : 'Failed to update highlighted plan.';
+                    throw new Error(message);
+                }
+
+                applyServerState(response.data.plans, response.data.stats);
+                setFeedback(response.data.message || 'Highlighted plan updated.', 'success');
+            })
+            .catch(function (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+                setFeedback(error && error.message ? error.message : 'Unable to set highlighted plan.', 'error');
+            })
+            .finally(function () {
+                setButtonLoading(button, false);
+            });
+    }
+
+    function deletePlan(planId, button) {
+        const plan = getPlan(planId);
+        const label = plan && plan.title ? '"' + plan.title + '"' : 'this pricing plan';
+
+        if (!window.confirm('Delete ' + label + '?')) {
+            return;
+        }
+
+        const endpoint = buildRoute(routes.delete_template, planId);
+        if (!endpoint) {
+            setFeedback('Delete route not configured.', 'error');
+            return;
+        }
+
+        setButtonLoading(button, true);
+
+        fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: new FormData(),
+            credentials: 'same-origin'
+        })
+            .then(parseManagerResponse)
+            .then(function (response) {
+                if (!response.ok || !response.data || response.data.success === false) {
+                    const message = response.data && response.data.message ? response.data.message : 'Failed to delete pricing plan.';
+                    throw new Error(message);
+                }
+
+                applyServerState(response.data.plans, response.data.stats);
+                setFeedback(response.data.message || 'Pricing plan removed.', 'success');
+            })
+            .catch(function (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+                setFeedback(error && error.message ? error.message : 'Unable to delete pricing plan.', 'error');
+            })
+            .finally(function () {
+                setButtonLoading(button, false);
+            });
+    }
+
+    function refreshPlans() {
+        if (!routes.fetch) {
+            setFeedback('Refresh route not configured.', 'error');
+            return;
+        }
+
+        if (refreshButton) {
+            setButtonLoading(refreshButton, true);
+        }
+
+        setFeedback('Refreshing plans...', 'muted');
+
+        fetch(routes.fetch, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: new FormData(),
+            credentials: 'same-origin'
+        })
+            .then(parseManagerResponse)
+            .then(function (response) {
+                if (!response.ok || !response.data || response.data.success === false) {
+                    const message = response.data && response.data.message ? response.data.message : 'Failed to refresh pricing plans.';
+                    throw new Error(message);
+                }
+
+                applyServerState(response.data.plans, response.data.stats);
+                setFeedback(response.data.message || 'Pricing plans refreshed.', 'success');
+            })
+            .catch(function (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+                setFeedback(error && error.message ? error.message : 'Unable to refresh pricing plans.', 'error');
+            })
+            .finally(function () {
+                if (refreshButton) {
+                    setButtonLoading(refreshButton, false);
+                }
+            });
+    }
+
+    function scheduleReorder(order) {
+        if (!routes.reorder || !order.length) {
+            return;
+        }
+
+        if (state.reorderTimer) {
+            window.clearTimeout(state.reorderTimer);
+        }
+
+        state.reorderTimer = window.setTimeout(function () {
+            state.reorderTimer = null;
+            sendReorder(order);
+        }, 400);
+    }
+
+    function sendReorder(order) {
+        if (!routes.reorder || !order.length) {
+            return;
+        }
+
+        if (state.reorderController) {
+            state.reorderController.abort();
+        }
+
+        state.reorderController = new AbortController();
+
+        const formData = new FormData();
+        formData.append('order', JSON.stringify(order));
+
+        fetch(routes.reorder, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: formData,
+            credentials: 'same-origin',
+            signal: state.reorderController.signal
+        })
+            .then(parseManagerResponse)
+            .then(function (response) {
+                if (!response.ok || !response.data || response.data.success === false) {
+                    const message = response.data && response.data.message ? response.data.message : 'Failed to save plan order.';
+                    throw new Error(message);
+                }
+
+                applyServerState(response.data.plans, response.data.stats);
+                setFeedback(response.data.message || 'Plan order updated.', 'success');
+            })
+            .catch(function (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+                setFeedback(error && error.message ? error.message : 'Unable to save plan order.', 'error');
+            });
+    }
+
+    function getCurrentOrder() {
+        return Array.from(list.querySelectorAll('[data-plan-item]')).map(function (item) {
+            return Number(item.dataset.planId || '0');
+        }).filter(function (id) {
+            return id > 0;
+        });
+    }
+
+    function applyOrderToState(order) {
+        if (!order.length) {
+            return;
+        }
+
+        const lookup = new Map();
+        state.plans.forEach(function (plan) {
+            lookup.set(plan.id, plan);
+        });
+
+        const ordered = order.map(function (id) {
+            return lookup.get(id) || null;
+        }).filter(Boolean);
+
+        if (ordered.length !== state.plans.length) {
+            return;
+        }
+
+        state.plans = ordered.map(function (plan, index) {
+            plan.sort_order = index;
+            return plan;
+        });
+    }
+
+    function buildRoute(template, id) {
+        if (!template || !id) {
+            return '';
+        }
+        return String(template).replace('__ID__', String(id));
+    }
+
+    function getPlan(planId) {
+        return state.plans.find(function (plan) {
+            return plan.id === planId;
+        }) || null;
+    }
+
+    function setFeedback(message, tone) {
+        if (!feedback) {
+            return;
+        }
+
+        if (state.messageTimer) {
+            window.clearTimeout(state.messageTimer);
+            state.messageTimer = null;
+        }
+
+        if (!message) {
+            feedback.textContent = '';
+            feedback.classList.add('d-none');
+            feedback.classList.remove('text-success', 'text-danger', 'text-warning', 'text-muted');
+            return;
+        }
+
+        feedback.textContent = message;
+        feedback.classList.remove('d-none', 'text-success', 'text-danger', 'text-warning', 'text-muted');
+
+        switch (tone) {
+            case 'success':
+                feedback.classList.add('text-success');
+                state.messageTimer = window.setTimeout(function () {
+                    setFeedback('', '');
+                }, 2500);
+                break;
+            case 'error':
+                feedback.classList.add('text-danger');
+                break;
+            case 'warning':
+                feedback.classList.add('text-warning');
+                break;
+            default:
+                feedback.classList.add('text-muted');
+        }
     }
 }
 

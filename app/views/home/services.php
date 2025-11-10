@@ -3,7 +3,7 @@ $pageSections = $page_sections ?? [];
 $pageContent = $page_content ?? '';
 $servicesList = $services ?? [];
 $processSteps = $process_steps ?? [];
-$pricingPackages = $pricing_packages ?? [];
+$pricingPlans = $pricing_plans ?? [];
 $faqsList = $faqs ?? [];
 $testimonials = $featured_testimonials ?? [];
 
@@ -179,44 +179,27 @@ $faqSubtitle = $faqSection['subtitle'] ?? 'Common questions about scope, timelin
             </div>
         </div>
         <div class="row">
-            <?php if (!empty($pricingPackages)): ?>
-                <?php foreach ($pricingPackages as $index => $package): ?>
+            <?php if (!empty($pricingPlans)): ?>
+                            <?php foreach ($pricingPlans as $index => $plan): ?>
                     <?php
-                    $packageFeatures = [];
-                    if (!empty($package['features']) && is_array($package['features'])) {
-                        foreach ($package['features'] as $feature) {
-                            if (is_array($feature) && !empty($feature['feature_text'])) {
-                                $packageFeatures[] = $feature['feature_text'];
-                            }
-                        }
-                    }
-
-                    $isFeatured = !empty($package['is_featured']);
-                    $badgeText = $package['badge_text'] ?? ($isFeatured ? 'Popular' : '');
-                    $ctaText = $package['cta_text'] ?? 'Start Project';
-                    $ctaUrl = navbar_build_nav_url($package['cta_url'] ?? '/contact');
-
-                    $priceAmount = $package['price_amount'] ?? '';
-                    $priceAmountDisplay = $priceAmount;
-                    if ($priceAmount !== '' && is_numeric($priceAmount)) {
-                        $priceAmountDisplay = '$' . number_format((float)$priceAmount, 0);
-                    }
-
-                    $priceLabel = $package['price_label'] ?? '';
-                    $pricePeriod = $package['price_period'] ?? '';
+                                $features = is_array($plan['features_list'] ?? null) ? $plan['features_list'] : [];
+                                $isHighlighted = !empty($plan['highlight']);
+                                $badgeText = $plan['badge_text'] ?? ($isHighlighted ? 'Recommended' : '');
+                                $ctaText = $plan['cta_label'] ?? 'Start Project';
+                                $ctaUrlRaw = $plan['cta_url_resolved'] ?? ($plan['cta_url'] ?? '/contact');
+                                $ctaUrl = navbar_build_nav_url($ctaUrlRaw);
+                                $priceAmountDisplay = $plan['price_display'] ?? '';
+                                $pricePeriod = $plan['price_period'] ?? '';
                     ?>
                     <div class="col-lg-4 mb-4" data-aos="fade-up" data-aos-delay="<?= (int)$index * 100 ?>">
-                        <div class="package-card<?= $isFeatured ? ' package-featured' : '' ?>">
+                                    <div class="package-card<?= $isHighlighted ? ' package-featured' : '' ?>">
                             <?php if (!empty($badgeText)): ?>
                                 <div class="package-badge"><?= htmlspecialchars($badgeText) ?></div>
                             <?php endif; ?>
                             <div class="package-header">
-                                <h3 class="package-name"><?= htmlspecialchars($package['name'] ?? 'Package') ?></h3>
-                                <?php if (!empty($priceAmountDisplay) || !empty($priceLabel)): ?>
+                                            <h3 class="package-name"><?= htmlspecialchars($plan['title'] ?? 'Package') ?></h3>
+                                            <?php if (!empty($priceAmountDisplay)): ?>
                                     <div class="package-price">
-                                        <?php if (!empty($priceLabel)): ?>
-                                            <span class="price-label d-block text-muted small mb-1"><?= htmlspecialchars($priceLabel) ?></span>
-                                        <?php endif; ?>
                                         <?php if (!empty($priceAmountDisplay)): ?>
                                             <span class="price-amount"><?= htmlspecialchars($priceAmountDisplay) ?></span>
                                         <?php endif; ?>
@@ -225,21 +208,21 @@ $faqSubtitle = $faqSection['subtitle'] ?? 'Common questions about scope, timelin
                                         <?php endif; ?>
                                     </div>
                                 <?php endif; ?>
-                                <?php if (!empty($package['description'])): ?>
-                                    <p class="package-description"><?= htmlspecialchars($package['description']) ?></p>
+                                            <?php if (!empty($plan['subtitle'])): ?>
+                                                <p class="package-description"><?= htmlspecialchars($plan['subtitle']) ?></p>
                                 <?php endif; ?>
                             </div>
-                            <?php if (!empty($packageFeatures)): ?>
+                                        <?php if (!empty($features)): ?>
                                 <div class="package-features">
                                     <ul>
-                                        <?php foreach ($packageFeatures as $feature): ?>
+                                                    <?php foreach ($features as $feature): ?>
                                             <li><i class="bi bi-check text-primary me-2"></i><?= htmlspecialchars($feature) ?></li>
                                         <?php endforeach; ?>
                                     </ul>
                                 </div>
                             <?php endif; ?>
                             <div class="package-footer">
-                                <a href="<?= htmlspecialchars($ctaUrl) ?>" class="btn <?= $isFeatured ? 'btn-primary' : 'btn-outline-primary' ?> w-100">
+                                            <a href="<?= htmlspecialchars($ctaUrl) ?>" class="btn <?= $isHighlighted ? 'btn-primary' : 'btn-outline-primary' ?> w-100">
                                     <?= htmlspecialchars($ctaText) ?>
                                 </a>
                             </div>

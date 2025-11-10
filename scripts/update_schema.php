@@ -73,6 +73,80 @@ function foreignKeyExists(PDO $connection, string $table, string $constraintName
     return (bool) $statement->fetch(PDO::FETCH_ASSOC);
 }
 
+function ensurePricingPlans(PDO $connection): void
+{
+    $table = 'pricing_plans';
+
+    if (!tableExists($connection, $table)) {
+        $connection->exec(
+            "CREATE TABLE `{$table}` (
+                `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `title` VARCHAR(255) NOT NULL,
+                `subtitle` VARCHAR(255) NULL,
+                `price_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                `price_period` VARCHAR(50) NULL,
+                `badge_text` VARCHAR(120) NULL,
+                `cta_label` VARCHAR(120) NULL,
+                `cta_url` VARCHAR(255) NULL DEFAULT '/contact',
+                `features` TEXT NULL,
+                `highlight` TINYINT(1) NOT NULL DEFAULT 0,
+                `sort_order` INT UNSIGNED NOT NULL DEFAULT 0,
+                `visible` TINYINT(1) NOT NULL DEFAULT 1,
+                `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                INDEX `idx_pricing_plans_sort` (`sort_order`),
+                INDEX `idx_pricing_plans_visibility` (`visible`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+
+        echo "Created {$table} table.\n";
+
+        if (tableExists($connection, 'pricing_packages')) {
+            $migrationQuery = $connection->query(
+                "SELECT p.id, p.name, p.description, p.price_amount, p.price_period, p.is_featured, p.sort_order, p.status
+                   FROM pricing_packages p
+                  ORDER BY p.sort_order ASC, p.id ASC"
+            );
+
+            if ($migrationQuery) {
+                $rows = $migrationQuery->fetchAll(PDO::FETCH_ASSOC);
+                if ($rows) {
+                    $insert = $connection->prepare(
+                        "INSERT INTO `{$table}` (title, subtitle, price_amount, price_period, badge_text, cta_label, cta_url, features, highlight, sort_order, visible, created_at, updated_at)
+                         VALUES (:title, :subtitle, :price_amount, :price_period, :badge_text, :cta_label, :cta_url, :features, :highlight, :sort_order, :visible, NOW(), NOW())"
+                    );
+
+                    foreach ($rows as $row) {
+                        $featuresQuery = $connection->prepare(
+                            "SELECT feature_text FROM pricing_package_features WHERE package_id = :package ORDER BY sort_order ASC, id ASC"
+                        );
+                        $featuresQuery->execute([':package' => $row['id']]);
+                        $featuresList = $featuresQuery->fetchAll(PDO::FETCH_COLUMN) ?: [];
+                        $featuresText = implode("\n", array_map('trim', $featuresList));
+
+                        $insert->execute([
+                            ':title' => trim((string)($row['name'] ?? '')),
+                            ':subtitle' => trim((string)($row['description'] ?? '')) ?: null,
+                            ':price_amount' => (float)($row['price_amount'] ?? 0),
+                            ':price_period' => trim((string)($row['price_period'] ?? '')) ?: null,
+                            ':badge_text' => trim((string)($row['badge_text'] ?? '')) ?: null,
+                            ':cta_label' => trim((string)($row['cta_text'] ?? '')) ?: null,
+                            ':cta_url' => trim((string)($row['cta_url'] ?? '')) ?: '/contact',
+                            ':features' => $featuresText !== '' ? $featuresText : null,
+                            ':highlight' => !empty($row['is_featured']) ? 1 : 0,
+                            ':sort_order' => (int)($row['sort_order'] ?? 0),
+                            ':visible' => (isset($row['status']) && strtolower((string)$row['status']) === 'draft') ? 0 : 1,
+                        ]);
+                    }
+
+                    echo "Migrated existing pricing packages into {$table}.\n";
+                }
+            }
+        }
+    }
+}
+
 function ensureDesignProcessSteps(PDO $connection): void
 {
     $table = 'design_process_steps';
@@ -187,6 +261,7 @@ function ensureDesignProcessSteps(PDO $connection): void
 }
 
 try {
+    ensurePricingPlans($connection);
     ensureDesignProcessSteps($connection);
 
     if (!columnExists($connection, 'service_features', 'icon_class')) {
