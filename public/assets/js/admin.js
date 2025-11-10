@@ -7,8 +7,9 @@
         initializeHeroStatsManager();
         initializeFeaturedWorkManager();
         initializeTestimonialsManager();
-    initializeHomePageCtaManager();
-    initializeServicesManager();
+        initializeHomePageCtaManager();
+        initializeServicesManager();
+        initializeServiceFeaturesManager();
         initializeServicesPreviewManager();
         initializeSkillsPreviewManager();
         initializeAboutHighlights();
@@ -20,6 +21,7 @@
 const toggleRegistry = new WeakMap();
 const heroStatItemTimers = new WeakMap();
 const servicesFeedbackTimers = new WeakMap();
+const serviceFeatureFeedbackTimers = new WeakMap();
 
 function initializePreviewHandlers() {
     document.querySelectorAll('.admin-form').forEach(registerPreviewContainer);
@@ -2973,6 +2975,1092 @@ function initializeServicesManager() {
 
     function isDirty() {
         return stringifyServices(state.services) !== state.originalSerialized;
+    }
+}
+
+function initializeServiceFeaturesManager() {
+    const container = document.querySelector('[data-service-features-manager]');
+    if (!container) {
+        return;
+    }
+
+    const serviceSelect = container.querySelector('[data-feature-service-select]');
+    const addButton = container.querySelector('[data-feature-add]');
+    const refreshButton = container.querySelector('[data-feature-refresh]');
+    const list = container.querySelector('[data-feature-list]');
+    const emptyState = container.querySelector('[data-feature-empty]');
+    const feedback = container.querySelector('[data-feature-feedback]');
+    const countSummary = container.querySelector('[data-feature-count]');
+    const previewList = container.querySelector('[data-feature-preview-list]');
+    const previewEmpty = container.querySelector('[data-feature-preview-empty]');
+    const previewTitle = container.querySelector('[data-preview-service-title]');
+    const previewDescription = container.querySelector('[data-preview-service-description]');
+    const previewIcon = container.querySelector('[data-preview-service-icon]');
+
+    const modalElement = document.getElementById('serviceFeatureModal');
+    const modalForm = modalElement ? modalElement.querySelector('[data-feature-form]') : null;
+    const modalTitle = modalElement ? modalElement.querySelector('[data-feature-modal-title]') : null;
+    const modalError = modalElement ? modalElement.querySelector('[data-feature-modal-error]') : null;
+    const modalCancelButtons = modalElement ? modalElement.querySelectorAll('[data-feature-modal-cancel]') : [];
+    const modalSubmitButton = modalElement ? modalElement.querySelector('[data-feature-modal-submit]') : null;
+
+    const modalFields = {
+        featureText: modalElement ? modalElement.querySelector('[data-feature-field="feature_text"]') : null,
+        iconClass: modalElement ? modalElement.querySelector('[data-feature-field="icon_class"]') : null,
+        sortOrder: modalElement ? modalElement.querySelector('[data-feature-field="sort_order"]') : null,
+        display: modalElement ? modalElement.querySelector('[data-feature-field="display"]') : null
+    };
+
+    const itemTemplate = document.getElementById('serviceFeatureItemTemplate');
+    const previewItemTemplate = document.getElementById('serviceFeaturePreviewItemTemplate');
+
+    if (!list || !itemTemplate || !itemTemplate.content || !previewItemTemplate || !previewItemTemplate.content || !modalElement || !modalForm) {
+        return;
+    }
+
+    const modalInstance = typeof bootstrap !== 'undefined' && bootstrap.Modal
+        ? new bootstrap.Modal(modalElement)
+        : null;
+
+    const routes = {
+        fetch: container.dataset.featureFetchUrl || '',
+        store: container.dataset.featureStoreUrl || '',
+        reorder: container.dataset.featureReorderUrl || '',
+        updateTemplate: container.dataset.featureUpdateTemplate || '',
+        deleteTemplate: container.dataset.featureDeleteTemplate || '',
+        toggleTemplate: container.dataset.featureToggleTemplate || ''
+    };
+
+    const services = parseServices(container.dataset.servicesMeta || '[]');
+    const serviceMap = new Map();
+    services.forEach(function (service) {
+        serviceMap.set(service.id, service);
+    });
+
+    let selectedServiceId = parseInt(container.dataset.initialService || '', 10);
+    if (!selectedServiceId || !serviceMap.has(selectedServiceId)) {
+        selectedServiceId = services.length ? services[0].id : 0;
+    }
+
+    const initialFeatures = parseFeatures(container.dataset.initialFeatures || '[]', selectedServiceId);
+
+    const state = {
+        selectedServiceId: selectedServiceId,
+        features: initialFeatures,
+        saved: cloneFeatures(initialFeatures),
+        editingId: null,
+        busy: false
+    };
+
+    if (serviceSelect) {
+        serviceSelect.value = state.selectedServiceId ? String(state.selectedServiceId) : '';
+        serviceSelect.addEventListener('change', handleServiceSwitch);
+    }
+
+    if (addButton) {
+        addButton.addEventListener('click', function () {
+            openFeatureModal();
+        });
+    }
+
+    if (refreshButton) {
+        refreshButton.addEventListener('click', function () {
+            reloadFeatures(true);
+        });
+    }
+
+    modalCancelButtons.forEach(function (button) {
+        button.addEventListener('click', function (event) {
+            event.preventDefault();
+            closeModal();
+        });
+    });
+
+    modalElement.addEventListener('hidden.bs.modal', function () {
+        resetModal();
+        state.editingId = null;
+    });
+
+    modalForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        handleModalSubmit();
+    });
+
+    list.addEventListener('click', function (event) {
+        const target = event.target;
+        const editButton = target.closest('[data-feature-edit]');
+        if (editButton) {
+            const item = editButton.closest('[data-feature-item]');
+            if (item) {
+                openFeatureModal(Number(item.dataset.featureId || 0));
+            }
+            return;
+        }
+
+        const deleteButton = target.closest('[data-feature-delete]');
+        if (deleteButton) {
+            const item = deleteButton.closest('[data-feature-item]');
+            if (item) {
+                const featureId = Number(item.dataset.featureId || 0);
+                confirmDelete(featureId);
+            }
+        }
+    });
+
+    list.addEventListener('change', function (event) {
+        const toggle = event.target.closest('[data-feature-toggle]');
+        if (toggle) {
+            const item = toggle.closest('[data-feature-item]');
+            if (item) {
+                const featureId = Number(item.dataset.featureId || 0);
+                toggleFeature(featureId, toggle.checked, toggle);
+            }
+        }
+    });
+
+    list.addEventListener('sortable:reordered', handleReorder);
+
+    renderAll();
+
+    function handleServiceSwitch() {
+        if (!serviceSelect) {
+            return;
+        }
+
+        const selected = parseInt(serviceSelect.value || '', 10) || 0;
+        if (selected === state.selectedServiceId) {
+            return;
+        }
+
+        state.selectedServiceId = selected;
+        state.features = [];
+        state.saved = [];
+        renderAll();
+        reloadFeatures(false);
+    }
+
+    function reloadFeatures(showToast) {
+        if (!routes.fetch || !state.selectedServiceId) {
+            renderAll();
+            return;
+        }
+
+        setBusy(true);
+        flashFeedback('Loading features...', 'muted');
+
+        sendRequest(routes.fetch, {
+            service_id: state.selectedServiceId
+        }).then(function (payload) {
+            if (!payload.ok || !payload.data || payload.data.success === false) {
+                const message = payload.data && payload.data.message ? payload.data.message : 'Failed to load features.';
+                throw new Error(message);
+            }
+
+            const incoming = Array.isArray(payload.data.features) ? payload.data.features : [];
+            state.features = normalizeFeatureList(incoming, state.selectedServiceId);
+            state.saved = cloneFeatures(state.features);
+
+            const message = payload.data.message || 'Features loaded.';
+            flashFeedback(message, 'muted');
+
+            if (showToast) {
+                showToastMessage(message, 'info');
+            }
+
+            renderAll();
+        }).catch(function (error) {
+            const message = error && error.message ? error.message : 'Unable to load features. Please try again.';
+            flashFeedback(message, 'error');
+        }).finally(function () {
+            setBusy(false);
+        });
+    }
+
+    function handleModalSubmit() {
+        if (state.busy) {
+            return;
+        }
+
+        const formData = collectModalData();
+        if (!formData.valid) {
+            showModalError(formData.errors.join(' '));
+            return;
+        }
+
+        hideModalError();
+
+        const isEdit = !!state.editingId;
+        const featureId = state.editingId;
+
+        if (isEdit) {
+            updateFeature(featureId, formData.values);
+        } else {
+            createFeature(formData.values);
+        }
+    }
+
+    function createFeature(values) {
+        if (!routes.store) {
+            return;
+        }
+
+        setBusy(true);
+        disableModalSubmit(true);
+
+        const payload = buildPayload(values);
+        payload.service_id = state.selectedServiceId;
+
+        sendRequest(routes.store, payload).then(function (payload) {
+            if (!payload.ok || !payload.data || payload.data.success === false) {
+                const message = payload.data && payload.data.message ? payload.data.message : 'Failed to add feature.';
+                const errors = extractErrorMessages(payload.data);
+                if (errors.length) {
+                    showModalError(errors.join(' '));
+                } else {
+                    showModalError(message);
+                }
+                throw new Error(message);
+            }
+
+            const feature = normalizeFeature(payload.data.feature, state.selectedServiceId);
+            state.features.push(feature);
+            state.features = sortFeatures(state.features);
+            state.saved = cloneFeatures(state.features);
+
+            const message = payload.data.message || 'Feature added successfully.';
+            flashFeedback(message, 'success');
+            showToastMessage(message, 'success');
+
+            closeModal();
+            renderAll();
+        }).catch(function (error) {
+            const message = error && error.message ? error.message : 'Failed to add feature. Please try again.';
+            showModalError(message);
+        }).finally(function () {
+            setBusy(false);
+            disableModalSubmit(false);
+        });
+    }
+
+    function updateFeature(featureId, values) {
+        if (!routes.updateTemplate || !featureId) {
+            return;
+        }
+
+        const endpoint = buildRoute(routes.updateTemplate, featureId);
+        setBusy(true);
+        disableModalSubmit(true);
+
+        const payload = buildPayload(values);
+
+        sendRequest(endpoint, payload).then(function (payload) {
+            if (!payload.ok || !payload.data || payload.data.success === false) {
+                const message = payload.data && payload.data.message ? payload.data.message : 'Failed to update feature.';
+                const errors = extractErrorMessages(payload.data);
+                if (errors.length) {
+                    showModalError(errors.join(' '));
+                } else {
+                    showModalError(message);
+                }
+                throw new Error(message);
+            }
+
+            const nextFeature = normalizeFeature(payload.data.feature, state.selectedServiceId);
+            const index = findFeatureIndex(featureId);
+            if (index !== -1) {
+                state.features[index] = nextFeature;
+            }
+
+            state.features = sortFeatures(state.features);
+            state.saved = cloneFeatures(state.features);
+
+            const message = payload.data.message || 'Feature updated successfully.';
+            flashFeedback(message, 'success');
+            showToastMessage(message, 'success');
+
+            closeModal();
+            renderAll();
+        }).catch(function (error) {
+            const message = error && error.message ? error.message : 'Failed to update feature. Please try again.';
+            showModalError(message);
+        }).finally(function () {
+            setBusy(false);
+            disableModalSubmit(false);
+        });
+    }
+
+    function confirmDelete(featureId) {
+        if (!featureId || !routes.deleteTemplate) {
+            return;
+        }
+
+        const feature = getFeature(featureId);
+        const label = feature && feature.feature_text ? '"' + feature.feature_text + '"' : 'this feature';
+
+        if (!window.confirm('Delete ' + label + '?')) {
+            return;
+        }
+
+        const endpoint = buildRoute(routes.deleteTemplate, featureId);
+        setBusy(true);
+
+        sendRequest(endpoint, { service_id: state.selectedServiceId }).then(function (payload) {
+            if (!payload.ok || !payload.data || payload.data.success === false) {
+                const message = payload.data && payload.data.message ? payload.data.message : 'Failed to delete feature.';
+                throw new Error(message);
+            }
+
+            const index = findFeatureIndex(featureId);
+            if (index !== -1) {
+                state.features.splice(index, 1);
+            }
+
+            state.features = sortFeatures(state.features);
+            state.saved = cloneFeatures(state.features);
+
+            const message = payload.data.message || 'Feature removed.';
+            flashFeedback(message, 'warning');
+            showToastMessage(message, 'warning');
+            renderAll();
+        }).catch(function (error) {
+            const message = error && error.message ? error.message : 'Unable to delete feature.';
+            flashFeedback(message, 'error');
+        }).finally(function () {
+            setBusy(false);
+        });
+    }
+
+    function toggleFeature(featureId, visible, control) {
+        if (!routes.toggleTemplate || !featureId) {
+            return;
+        }
+
+        const endpoint = buildRoute(routes.toggleTemplate, featureId);
+        if (control) {
+            control.disabled = true;
+        }
+
+        sendRequest(endpoint, {
+            display: visible ? 1 : 0
+        }).then(function (payload) {
+            if (!payload.ok || !payload.data || payload.data.success === false) {
+                const message = payload.data && payload.data.message ? payload.data.message : 'Failed to update visibility.';
+                throw new Error(message);
+            }
+
+            const nextFeature = normalizeFeature(payload.data.feature, state.selectedServiceId);
+            const index = findFeatureIndex(featureId);
+            if (index !== -1) {
+                state.features[index] = nextFeature;
+            }
+
+            state.features = sortFeatures(state.features);
+            state.saved = cloneFeatures(state.features);
+
+            const message = payload.data.message || (visible ? 'Feature is now visible.' : 'Feature hidden.');
+            flashFeedback(message, 'success');
+            renderAll();
+        }).catch(function (error) {
+            const message = error && error.message ? error.message : 'Unable to update visibility.';
+            flashFeedback(message, 'error');
+            if (control) {
+                control.checked = !visible;
+            }
+        }).finally(function () {
+            if (control) {
+                control.disabled = false;
+            }
+        });
+    }
+
+    function handleReorder() {
+        if (!routes.reorder || !state.features.length) {
+            return;
+        }
+
+        const orderedIds = Array.from(list.querySelectorAll('[data-feature-item]'))
+            .map(function (item) {
+                return Number(item.dataset.featureId || 0);
+            })
+            .filter(function (id) {
+                return id > 0;
+            });
+
+        if (!orderedIds.length || orderedIds.length !== state.features.length) {
+            return;
+        }
+
+        const lookup = new Map();
+        state.features.forEach(function (feature) {
+            lookup.set(feature.id, feature);
+        });
+
+        const reordered = [];
+        orderedIds.forEach(function (id) {
+            if (lookup.has(id)) {
+                reordered.push(lookup.get(id));
+            }
+        });
+
+        if (reordered.length !== state.features.length) {
+            return;
+        }
+
+        reordered.forEach(function (feature, index) {
+            feature.sort_order = index + 1;
+        });
+
+        state.features = reordered;
+        renderAll();
+        flashFeedback('Saving new order...', 'muted');
+
+        sendRequest(routes.reorder, {
+            service_id: state.selectedServiceId,
+            order: JSON.stringify(orderedIds)
+        }).then(function (payload) {
+            if (!payload.ok || !payload.data || payload.data.success === false) {
+                const message = payload.data && payload.data.message ? payload.data.message : 'Failed to save order.';
+                throw new Error(message);
+            }
+
+            const incoming = Array.isArray(payload.data.features) ? payload.data.features : [];
+            state.features = normalizeFeatureList(incoming, state.selectedServiceId);
+            state.saved = cloneFeatures(state.features);
+
+            const message = payload.data.message || 'Feature order updated.';
+            flashFeedback(message, 'muted');
+        }).catch(function (error) {
+            const message = error && error.message ? error.message : 'Unable to save feature order.';
+            flashFeedback(message, 'error');
+        });
+    }
+
+    function buildPayload(values) {
+        const payload = {
+            feature_text: values.featureText,
+            icon_class: values.iconClass,
+            display: values.display ? 1 : 0
+        };
+
+        if (values.sortOrder) {
+            payload.sort_order = values.sortOrder;
+        }
+
+        return payload;
+    }
+
+    function buildRoute(template, id) {
+        if (!template) {
+            return '';
+        }
+
+        const featureId = typeof id === 'number' ? id : parseInt(id, 10);
+        if (!featureId || Number.isNaN(featureId)) {
+            return template;
+        }
+
+        return template.replace(/__ID__/g, encodeURIComponent(featureId));
+    }
+
+    function openFeatureModal(featureId) {
+        state.editingId = featureId || null;
+        resetModal();
+
+        const isEdit = !!state.editingId;
+        if (modalTitle) {
+            modalTitle.textContent = isEdit ? 'Edit Feature' : 'Add Feature';
+        }
+
+        if (isEdit) {
+            const feature = getFeature(state.editingId);
+            if (!feature) {
+                flashFeedback('Feature not found.', 'error');
+                state.editingId = null;
+                return;
+            }
+
+            if (modalFields.featureText) {
+                modalFields.featureText.value = feature.feature_text;
+            }
+            if (modalFields.iconClass) {
+                modalFields.iconClass.value = feature.icon_class;
+            }
+            if (modalFields.sortOrder) {
+                modalFields.sortOrder.value = feature.sort_order || '';
+            }
+            if (modalFields.display) {
+                modalFields.display.checked = !!feature.display;
+            }
+        } else {
+            if (modalFields.display) {
+                modalFields.display.checked = true;
+            }
+        }
+
+        showModal();
+        if (modalFields.featureText) {
+            modalFields.featureText.focus({ preventScroll: true });
+        }
+    }
+
+    function getFeature(id) {
+        const index = findFeatureIndex(id);
+        if (index === -1) {
+            return null;
+        }
+        return state.features[index];
+    }
+
+    function findFeatureIndex(id) {
+        const featureId = Number(id);
+        for (let index = 0; index < state.features.length; index += 1) {
+            if (state.features[index].id === featureId) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    function showModal() {
+        if (modalInstance) {
+            modalInstance.show();
+        } else {
+            modalElement.classList.add('show');
+            modalElement.removeAttribute('aria-hidden');
+            modalElement.style.display = 'block';
+        }
+    }
+
+    function closeModal() {
+        if (modalInstance) {
+            modalInstance.hide();
+        } else {
+            modalElement.classList.remove('show');
+            modalElement.setAttribute('aria-hidden', 'true');
+            modalElement.style.display = 'none';
+        }
+    }
+
+    function resetModal() {
+        if (modalForm) {
+            modalForm.reset();
+        }
+        hideModalError();
+        if (modalFields.display) {
+            modalFields.display.checked = true;
+        }
+    }
+
+    function disableModalSubmit(disabled) {
+        if (modalSubmitButton) {
+            modalSubmitButton.disabled = !!disabled;
+        }
+    }
+
+    function showModalError(message) {
+        if (!modalError) {
+            return;
+        }
+        modalError.textContent = message;
+        modalError.classList.remove('d-none');
+    }
+
+    function hideModalError() {
+        if (!modalError) {
+            return;
+        }
+        modalError.textContent = '';
+        modalError.classList.add('d-none');
+    }
+
+    function collectModalData() {
+        const errors = [];
+
+        const featureText = modalFields.featureText ? modalFields.featureText.value.trim() : '';
+        const iconClass = modalFields.iconClass ? modalFields.iconClass.value.trim() : '';
+        const sortRaw = modalFields.sortOrder ? modalFields.sortOrder.value.trim() : '';
+        const display = modalFields.display ? modalFields.display.checked : true;
+
+        let sortOrder = null;
+        if (sortRaw !== '') {
+            const parsed = parseInt(sortRaw, 10);
+            if (Number.isNaN(parsed) || parsed <= 0) {
+                errors.push('Sort order must be a positive number.');
+            } else {
+                sortOrder = parsed;
+            }
+        }
+
+        if (featureText.length < 3) {
+            errors.push('Feature text must be at least 3 characters long.');
+        }
+
+        return {
+            valid: errors.length === 0,
+            errors: errors,
+            values: {
+                featureText: featureText,
+                iconClass: iconClass,
+                sortOrder: sortOrder,
+                display: display
+            }
+        };
+    }
+
+    function renderAll() {
+        renderServiceMeta();
+        renderFeatureList();
+        renderPreview();
+        updateCountSummary();
+    }
+
+    function renderServiceMeta() {
+        const service = serviceMap.get(state.selectedServiceId);
+        if (previewTitle) {
+            previewTitle.textContent = service && service.title ? service.title : 'Select a service';
+        }
+
+        if (previewDescription) {
+            previewDescription.textContent = service && service.description ? service.description : '';
+        }
+
+        renderServiceIcon(previewIcon, service && service.icon ? service.icon : '');
+    }
+
+    function renderFeatureList() {
+        list.innerHTML = '';
+
+        if (!state.features.length) {
+            if (emptyState) {
+                emptyState.classList.remove('d-none');
+            }
+            return;
+        }
+
+        if (emptyState) {
+            emptyState.classList.add('d-none');
+        }
+
+        state.features.forEach(function (feature, index) {
+            const fragment = itemTemplate.content.firstElementChild.cloneNode(true);
+            fragment.dataset.featureId = String(feature.id);
+            fragment.dataset.sortableId = 'feature-' + feature.id;
+
+            const textEl = fragment.querySelector('[data-feature-text]');
+            if (textEl) {
+                textEl.textContent = feature.feature_text || 'Feature highlight';
+            }
+
+            const iconLabel = fragment.querySelector('[data-feature-icon-label]');
+            if (iconLabel) {
+                if (feature.icon_class) {
+                    iconLabel.innerHTML = '<i class="bi bi-dot"></i> ' + escapeHtml(feature.icon_class);
+                } else {
+                    iconLabel.textContent = 'No custom icon';
+                }
+            }
+
+            const orderBadge = fragment.querySelector('[data-feature-order]');
+            if (orderBadge) {
+                orderBadge.textContent = '#' + (index + 1);
+            }
+
+            const hiddenBadge = fragment.querySelector('[data-feature-hidden]');
+            if (hiddenBadge) {
+                hiddenBadge.classList.toggle('d-none', !!feature.display);
+            }
+
+            const toggle = fragment.querySelector('[data-feature-toggle]');
+            if (toggle) {
+                toggle.checked = !!feature.display;
+            }
+
+            fragment.classList.toggle('service-feature-item-hidden', !feature.display);
+
+            list.appendChild(fragment);
+        });
+    }
+
+    function renderPreview() {
+        previewList.innerHTML = '';
+
+        const visibleFeatures = state.features.filter(function (feature) {
+            return !!feature.display;
+        });
+
+        if (!visibleFeatures.length) {
+            if (previewEmpty) {
+                previewEmpty.classList.remove('d-none');
+            }
+            return;
+        }
+
+        if (previewEmpty) {
+            previewEmpty.classList.add('d-none');
+        }
+
+        visibleFeatures.forEach(function (feature) {
+            const fragment = previewItemTemplate.content.firstElementChild.cloneNode(true);
+            const iconContainer = fragment.querySelector('[data-preview-feature-icon]');
+            const textEl = fragment.querySelector('[data-preview-feature-text]');
+
+            if (textEl) {
+                textEl.textContent = feature.feature_text || '';
+            }
+
+            if (iconContainer) {
+                const iconElement = iconContainer.querySelector('i');
+                renderFeatureIcon(iconElement, feature.icon_class);
+            }
+
+            previewList.appendChild(fragment);
+        });
+    }
+
+    function renderServiceIcon(target, iconClass) {
+        if (!target) {
+            return;
+        }
+
+        const fallback = 'bi bi-stars';
+        const raw = typeof iconClass === 'string' ? iconClass.trim() : '';
+
+        if (!raw) {
+            target.className = fallback;
+            return;
+        }
+
+        const classes = raw.split(/\s+/).filter(Boolean);
+        const hasBase = classes.some(function (cls) {
+            return cls === 'bi' || cls.indexOf('bi-') === 0;
+        });
+
+        if (hasBase) {
+            target.className = classes.join(' ');
+        } else {
+            target.className = ['bi'].concat(classes).join(' ');
+        }
+    }
+
+    function renderFeatureIcon(target, iconClass) {
+        if (!target) {
+            return;
+        }
+
+        if (!target.classList.contains('bi')) {
+            target.classList.add('bi');
+        }
+
+        const base = 'bi-check2';
+        const raw = typeof iconClass === 'string' ? iconClass.trim() : '';
+
+        if (!raw) {
+            target.className = 'bi ' + base;
+            return;
+        }
+
+        const classes = raw.split(/\s+/).filter(Boolean);
+        const hasBootstrapIcon = classes.some(function (cls) {
+            return cls === 'bi' || cls.indexOf('bi-') === 0;
+        });
+
+        if (hasBootstrapIcon) {
+            target.className = classes.join(' ');
+        } else {
+            target.className = ['bi'].concat(classes).join(' ');
+        }
+    }
+
+    function updateCountSummary() {
+        if (!countSummary) {
+            return;
+        }
+
+        const total = state.features.length;
+        const visible = state.features.filter(function (feature) {
+            return !!feature.display;
+        }).length;
+
+        if (!total) {
+            countSummary.textContent = '';
+            return;
+        }
+
+        countSummary.textContent = visible + ' visible of ' + total + ' total';
+    }
+
+    function setBusy(isBusy) {
+        state.busy = !!isBusy;
+
+        if (addButton) {
+            addButton.disabled = state.busy;
+        }
+
+        if (refreshButton) {
+            refreshButton.disabled = state.busy;
+        }
+
+        if (serviceSelect) {
+            serviceSelect.disabled = state.busy;
+        }
+    }
+
+    function flashFeedback(message, tone) {
+        if (!feedback) {
+            return;
+        }
+
+        clearFeedbackTimer();
+        applyFeedbackTone(tone || 'muted');
+        feedback.textContent = message;
+
+        const timerId = window.setTimeout(function () {
+            serviceFeatureFeedbackTimers.delete(feedback);
+            feedback.textContent = '';
+            applyFeedbackTone('muted');
+        }, 2500);
+
+        serviceFeatureFeedbackTimers.set(feedback, timerId);
+    }
+
+    function applyFeedbackTone(tone) {
+        if (!feedback) {
+            return;
+        }
+
+        feedback.classList.remove('text-success', 'text-danger', 'text-warning', 'text-muted');
+
+        switch (tone) {
+            case 'success':
+                feedback.classList.add('text-success');
+                break;
+            case 'error':
+                feedback.classList.add('text-danger');
+                break;
+            case 'warning':
+                feedback.classList.add('text-warning');
+                break;
+            default:
+                feedback.classList.add('text-muted');
+        }
+    }
+
+    function clearFeedbackTimer() {
+        if (!feedback) {
+            return;
+        }
+
+        if (serviceFeatureFeedbackTimers.has(feedback)) {
+            window.clearTimeout(serviceFeatureFeedbackTimers.get(feedback));
+            serviceFeatureFeedbackTimers.delete(feedback);
+        }
+    }
+
+    function showToastMessage(message, tone) {
+        if (typeof showToast === 'function') {
+            showToast(message, tone || 'info', true);
+        }
+    }
+
+    function sendRequest(url, payload) {
+        if (!url) {
+            return Promise.reject(new Error('Endpoint not configured.'));
+        }
+
+        const formData = new FormData();
+        Object.keys(payload || {}).forEach(function (key) {
+            const value = payload[key];
+            if (typeof value === 'undefined' || value === null) {
+                return;
+            }
+            formData.append(key, value);
+        });
+
+        return fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: formData,
+            credentials: 'same-origin'
+        }).then(parseFeatureManagerResponse);
+    }
+
+    function parseFeatureManagerResponse(response) {
+        const contentType = response.headers.get('content-type') || '';
+        const isJson = contentType.indexOf('application/json') !== -1;
+
+        if (!isJson) {
+            return response.text().then(function (text) {
+                return {
+                    ok: response.ok,
+                    status: response.status,
+                    data: {
+                        success: response.ok,
+                        message: text || 'Server returned an unexpected response.'
+                    }
+                };
+            });
+        }
+
+        return response.json().then(function (data) {
+            return {
+                ok: response.ok,
+                status: response.status,
+                data: data
+            };
+        });
+    }
+
+    function parseServices(raw) {
+        if (!raw) {
+            return [];
+        }
+
+        try {
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) {
+                return [];
+            }
+
+            return parsed.map(normalizeService).filter(Boolean);
+        } catch (error) {
+            console.warn('Failed to parse service payload', error);
+            return [];
+        }
+    }
+
+    function normalizeService(service) {
+        if (!service) {
+            return null;
+        }
+
+        const id = Number(service.id || service.service_id || 0);
+        if (!id) {
+            return null;
+        }
+
+        const priceAmount = typeof service.price_amount !== 'undefined' && service.price_amount !== null
+            ? Number(service.price_amount)
+            : null;
+
+        return {
+            id: id,
+            title: typeof service.title === 'string' ? service.title.trim() : 'Untitled Service',
+            description: typeof service.description === 'string' ? service.description.trim() : '',
+            icon: typeof service.icon === 'string' ? service.icon.trim() : '',
+            price_label: typeof service.price_label === 'string' ? service.price_label.trim() : '',
+            price_amount: Number.isFinite(priceAmount) ? priceAmount : null,
+            is_visible: typeof service.is_visible !== 'undefined' ? !!service.is_visible : true
+        };
+    }
+
+    function parseFeatures(raw, serviceId) {
+        if (!raw) {
+            return [];
+        }
+
+        try {
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) {
+                return [];
+            }
+
+            return normalizeFeatureList(parsed, serviceId);
+        } catch (error) {
+            console.warn('Failed to parse feature payload', error);
+            return [];
+        }
+    }
+
+    function normalizeFeatureList(list, serviceId) {
+        const normalized = list.map(function (feature) {
+            return normalizeFeature(feature, serviceId);
+        }).filter(Boolean);
+
+        return sortFeatures(normalized);
+    }
+
+    function normalizeFeature(feature, serviceId) {
+        if (!feature) {
+            return null;
+        }
+
+        const id = Number(feature.id || feature.feature_id || 0);
+        const parentId = Number(feature.service_id || feature.serviceId || serviceId || 0);
+        const text = typeof feature.feature_text === 'string'
+            ? feature.feature_text.trim()
+            : (typeof feature.text === 'string' ? feature.text.trim() : '');
+
+        const icon = typeof feature.icon_class === 'string'
+            ? feature.icon_class.trim()
+            : (typeof feature.icon === 'string' ? feature.icon.trim() : '');
+
+        const sortOrderRaw = Number(feature.sort_order || feature.position || 0);
+        const displayRaw = typeof feature.display !== 'undefined' ? feature.display : 1;
+        const display = !(String(displayRaw).toLowerCase() === '0' || String(displayRaw).toLowerCase() === 'false');
+
+        return {
+            id: id,
+            service_id: parentId,
+            feature_text: text,
+            icon_class: icon,
+            sort_order: Number.isFinite(sortOrderRaw) && sortOrderRaw > 0 ? sortOrderRaw : 0,
+            display: display
+        };
+    }
+
+    function sortFeatures(features) {
+        return features.slice().sort(function (a, b) {
+            if (a.sort_order === b.sort_order) {
+                return a.id - b.id;
+            }
+            return a.sort_order - b.sort_order;
+        }).map(function (feature, index) {
+            if (!feature.sort_order || feature.sort_order <= 0) {
+                feature.sort_order = index + 1;
+            }
+            return feature;
+        });
+    }
+
+    function cloneFeatures(list) {
+        return list.map(function (feature) {
+            return {
+                id: feature.id,
+                service_id: feature.service_id,
+                feature_text: feature.feature_text,
+                icon_class: feature.icon_class,
+                sort_order: feature.sort_order,
+                display: feature.display
+            };
+        });
+    }
+
+    function escapeHtml(value) {
+        return value
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    function extractErrorMessages(payload) {
+        if (!payload || !payload.errors) {
+            return [];
+        }
+
+        if (Array.isArray(payload.errors)) {
+            return payload.errors;
+        }
+
+        if (typeof payload.errors === 'object') {
+            return Object.values(payload.errors).filter(function (value) {
+                return typeof value === 'string' && value.trim() !== '';
+            });
+        }
+
+        return [];
     }
 }
 

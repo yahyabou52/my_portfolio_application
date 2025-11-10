@@ -104,7 +104,7 @@ class Service extends BaseModel {
             ? $this->all('sort_order ASC, title ASC')
             : $this->where($conditions, 'sort_order ASC, title ASC');
 
-        return $this->attachFeatures($services, true);
+        return $this->attachFeatures($services, true, true);
     }
 
     public function syncServices(array $services): bool {
@@ -170,40 +170,80 @@ class Service extends BaseModel {
     }
 
     private function syncFeatures(int $serviceId, array $features): void {
-        $this->featureModel->deleteByService($serviceId);
-
         if (empty($features)) {
             return;
         }
 
+        $shouldSync = false;
+        foreach ($features as $feature) {
+            if (is_array($feature) && (isset($feature['icon_class']) || isset($feature['display']) || isset($feature['id']))) {
+                $shouldSync = true;
+                break;
+            }
+        }
+
+        if (!$shouldSync) {
+            return;
+        }
+
+        $this->featureModel->deleteByService($serviceId);
+
         $order = 1;
-        foreach ($features as $featureText) {
-            $text = trim((string)$featureText);
+        foreach ($features as $featureData) {
+            if (is_array($featureData)) {
+                $text = trim((string)($featureData['feature_text'] ?? $featureData['text'] ?? ''));
+                $icon = trim((string)($featureData['icon_class'] ?? ''));
+                $displayRaw = $featureData['display'] ?? 1;
+            } else {
+                $text = trim((string)$featureData);
+                $icon = '';
+                $displayRaw = 1;
+            }
+
             if ($text === '') {
                 continue;
             }
 
             $this->featureModel->create([
                 'service_id' => $serviceId,
-                'feature_text' => $text,
-                'sort_order' => $order
+                'feature_text' => mb_substr($text, 0, 255),
+                'icon_class' => $icon !== '' ? mb_substr($icon, 0, 100) : null,
+                'sort_order' => $order,
+                'display' => in_array((string)$displayRaw, ['0', 'false', 'no'], true) ? 0 : (int)!empty($displayRaw)
             ]);
 
             $order += 1;
         }
     }
 
-    private function attachFeatures(array $services, bool $includeVisibilityFlag = false): array {
+    private function attachFeatures(array $services, bool $includeVisibilityFlag = false, bool $includeHiddenFeatures = false): array {
         if (empty($services)) {
             return [];
         }
 
-        return array_map(function ($service) use ($includeVisibilityFlag) {
+        return array_map(function ($service) use ($includeVisibilityFlag, $includeHiddenFeatures) {
             $serviceId = (int)($service['id'] ?? 0);
-            $features = $serviceId > 0 ? $this->featureModel->getByService($serviceId) : [];
-            $service['features'] = array_map(function ($feature) {
-                return $feature['feature_text'] ?? '';
-            }, $features);
+            $rawFeatures = $serviceId > 0
+                ? $this->featureModel->getByService($serviceId, $includeHiddenFeatures)
+                : [];
+
+            $mappedFeatures = array_map(function ($feature) {
+                return [
+                    'id' => (int)($feature['id'] ?? 0),
+                    'feature_text' => (string)($feature['feature_text'] ?? ''),
+                    'icon_class' => $feature['icon_class'] ?? null,
+                    'sort_order' => (int)($feature['sort_order'] ?? 0),
+                    'display' => isset($feature['display']) ? (int)$feature['display'] : 1
+                ];
+            }, $rawFeatures);
+
+            if (!$includeHiddenFeatures) {
+                $mappedFeatures = array_values(array_filter($mappedFeatures, function ($feature) {
+                    return (int)$feature['display'] === 1;
+                }));
+            }
+
+            $service['features'] = $mappedFeatures;
 
             if ($includeVisibilityFlag) {
                 $service['is_visible'] = ($service['status'] ?? 'draft') === 'published' ? 1 : 0;

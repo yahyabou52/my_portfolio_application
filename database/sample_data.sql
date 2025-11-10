@@ -236,17 +236,17 @@ VALUES
 ON DUPLICATE KEY UPDATE updated_at = CURRENT_TIMESTAMP;
 
 -- Service features
-INSERT INTO service_features (service_id, feature_text, sort_order)
+INSERT INTO service_features (service_id, feature_text, icon_class, display, sort_order)
 VALUES
-	(1, 'Stakeholder workshops & alignment sessions', 1),
-	(1, 'Customer journey mapping + opportunity framing', 2),
-	(1, 'North-star metrics and experiment planning', 3),
-	(2, 'Information architecture & user flows', 1),
-	(2, 'Interactive prototypes tested with real users', 2),
-	(2, 'Developer-ready design systems & documentation', 3),
-	(3, 'Component libraries with usage guidelines', 1),
-	(3, 'Design tokens + theming support', 2),
-	(3, 'Design-to-dev handoff playbooks', 3)
+	(1, 'Stakeholder workshops & alignment sessions', 'bi-people', 1, 1),
+	(1, 'Customer journey mapping + opportunity framing', 'bi-diagram-2', 1, 2),
+	(1, 'North-star metrics and experiment planning', 'bi-graph-up-arrow', 1, 3),
+	(2, 'Information architecture & user flows', 'bi-diagram-3', 1, 1),
+	(2, 'Interactive prototypes tested with real users', 'bi-cursor', 1, 2),
+	(2, 'Developer-ready design systems & documentation', 'bi-tools', 1, 3),
+	(3, 'Component libraries with usage guidelines', 'bi-boxes', 1, 1),
+	(3, 'Design tokens + theming support', 'bi-droplet', 1, 2),
+	(3, 'Design-to-dev handoff playbooks', 'bi-arrow-left-right', 1, 3)
 ON DUPLICATE KEY UPDATE updated_at = CURRENT_TIMESTAMP;
 
 -- Pricing packages

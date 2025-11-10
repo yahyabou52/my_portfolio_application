@@ -6,6 +6,7 @@ require_once ROOT_PATH . '/app/models/Message.php';
 require_once ROOT_PATH . '/app/models/Setting.php';
 require_once ROOT_PATH . '/app/models/Page.php';
 require_once ROOT_PATH . '/app/models/Service.php';
+require_once ROOT_PATH . '/app/models/ServiceFeature.php';
 require_once ROOT_PATH . '/app/models/Project.php';
 require_once ROOT_PATH . '/app/models/NavigationMenu.php';
 require_once ROOT_PATH . '/app/models/Media.php';
@@ -27,6 +28,7 @@ class AdminManagerController extends BaseController {
     private $settingModel;
     private $pageModel;
     private $serviceModel;
+    private $serviceFeatureModel;
     private $projectModel;
     private $navigationModel;
     private $mediaModel;
@@ -43,7 +45,8 @@ class AdminManagerController extends BaseController {
         $this->messageModel = new Message();
         $this->settingModel = new Setting();
         $this->pageModel = new Page();
-        $this->serviceModel = new Service();
+    $this->serviceModel = new Service();
+    $this->serviceFeatureModel = new ServiceFeature();
         $this->projectModel = new Project();
         $this->navigationModel = new NavigationMenu();
         $this->mediaModel = new Media();
@@ -52,7 +55,7 @@ class AdminManagerController extends BaseController {
         $this->heroSectionModel = new HeroSection();
         $this->heroStatModel = new HeroStat();
         $this->timelineModel = new TimelineItem();
-    $this->featuredProjectModel = new FeaturedProject();
+        $this->featuredProjectModel = new FeaturedProject();
     }
     
     // SETTINGS MANAGEMENT
@@ -1860,6 +1863,437 @@ class AdminManagerController extends BaseController {
 
         $this->render('admin/services', 'admin', $data);
     }
+
+    // SERVICE FEATURE MANAGEMENT
+    public function serviceFeatures() {
+        $this->userModel->requireAuth();
+
+        $services = $this->serviceModel->all('sort_order ASC, title ASC');
+        $formattedServices = array_map([$this, 'formatServiceForFeatureManager'], $services);
+
+        $initialService = $formattedServices[0] ?? null;
+        $initialServiceId = (int)($initialService['id'] ?? 0);
+
+        $initialFeatures = $initialServiceId > 0
+            ? $this->serviceFeatureModel->getByService($initialServiceId, true)
+            : [];
+
+        $normalizedFeatures = array_map(function (array $feature) use ($initialService) {
+            return $this->formatServiceFeatureForManager($feature, $initialService ?? []);
+        }, $initialFeatures);
+
+        $routes = [
+            'fetch' => url('admin/services/features/list'),
+            'store' => url('admin/services/features'),
+            'update_template' => url('admin/services/features/__ID__/update'),
+            'delete_template' => url('admin/services/features/__ID__/delete'),
+            'toggle_template' => url('admin/services/features/__ID__/toggle'),
+            'reorder' => url('admin/services/features/reorder')
+        ];
+
+        $data = [
+            'title' => 'Service Features - Admin',
+            'page' => 'admin-service-features',
+            'services' => $formattedServices,
+            'initial_service_id' => $initialServiceId,
+            'services_json' => htmlspecialchars(json_encode($formattedServices, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8'),
+            'features_json' => htmlspecialchars(json_encode($normalizedFeatures, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8'),
+            'feature_routes' => $routes
+        ];
+
+        $this->render('admin/service-features', 'admin', $data);
+    }
+
+    public function fetchServiceFeatures() {
+        $this->userModel->requireAuth();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json([
+                'success' => false,
+                'message' => 'Invalid request method.'
+            ], 405);
+            return;
+        }
+
+        $serviceId = (int)($_POST['service_id'] ?? 0);
+        if ($serviceId <= 0) {
+            $this->json([
+                'success' => false,
+                'message' => 'Select a service before managing features.'
+            ], 422);
+            return;
+        }
+
+        $service = $this->serviceModel->find($serviceId);
+        if (!$service) {
+            $this->json([
+                'success' => false,
+                'message' => 'Service not found.'
+            ], 404);
+            return;
+        }
+
+        $features = $this->serviceFeatureModel->getByService($serviceId, true);
+        $formattedFeatures = array_map(function (array $feature) use ($service) {
+            return $this->formatServiceFeatureForManager($feature, $this->formatServiceForFeatureManager($service));
+        }, $features);
+
+        $this->json([
+            'success' => true,
+            'service' => $this->formatServiceForFeatureManager($service),
+            'features' => $formattedFeatures
+        ]);
+    }
+
+    public function storeServiceFeature() {
+        $this->userModel->requireAuth();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json([
+                'success' => false,
+                'message' => 'Invalid request method.'
+            ], 405);
+            return;
+        }
+
+        $serviceId = (int)($_POST['service_id'] ?? 0);
+        if ($serviceId <= 0) {
+            $this->json([
+                'success' => false,
+                'message' => 'A service reference is required.'
+            ], 422);
+            return;
+        }
+
+        $service = $this->serviceModel->find($serviceId);
+        if (!$service) {
+            $this->json([
+                'success' => false,
+                'message' => 'Service not found.'
+            ], 404);
+            return;
+        }
+
+        $input = $this->sanitizeServiceFeatureInput($_POST);
+        $errors = $this->validateServiceFeatureInput($input);
+
+        if (!empty($errors)) {
+            $this->json([
+                'success' => false,
+                'message' => 'Please fix the highlighted fields.',
+                'errors' => $errors
+            ], 422);
+            return;
+        }
+
+        $existing = $this->serviceFeatureModel->getByService($serviceId, true);
+        $requestedOrder = isset($input['sort_order']) ? (int)$input['sort_order'] : null;
+        $desiredPosition = $requestedOrder && $requestedOrder > 0 ? $requestedOrder : count($existing) + 1;
+
+        $payload = [
+            'service_id' => $serviceId,
+            'feature_text' => $input['feature_text'],
+            'icon_class' => $input['icon_class'] !== '' ? $input['icon_class'] : null,
+            'display' => $input['display'] ? 1 : 0,
+            'sort_order' => count($existing) + 1
+        ];
+
+        try {
+            $featureId = (int)$this->serviceFeatureModel->create($payload);
+
+            if ($desiredPosition !== count($existing) + 1) {
+                $orderedIds = array_column($existing, 'id');
+                $desiredPosition = max(1, min($desiredPosition, count($existing) + 1));
+                array_splice($orderedIds, $desiredPosition - 1, 0, $featureId);
+                $this->serviceFeatureModel->reorderForService($serviceId, $orderedIds);
+            }
+        } catch (Exception $exception) {
+            error_log('Failed to create service feature: ' . $exception->getMessage());
+            $this->json([
+                'success' => false,
+                'message' => 'Unable to add the feature. Please try again.'
+            ], 500);
+            return;
+        }
+
+        $record = $this->serviceFeatureModel->find($featureId);
+        $formatted = $this->formatServiceFeatureForManager($record, $this->formatServiceForFeatureManager($service));
+
+        $this->json([
+            'success' => true,
+            'message' => 'Feature added successfully.',
+            'feature' => $formatted
+        ]);
+    }
+
+    public function updateServiceFeature($id) {
+        $this->userModel->requireAuth();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json([
+                'success' => false,
+                'message' => 'Invalid request method.'
+            ], 405);
+            return;
+        }
+
+        $featureId = (int)$id;
+        if ($featureId <= 0) {
+            $this->json([
+                'success' => false,
+                'message' => 'Feature not found.'
+            ], 404);
+            return;
+        }
+
+        $existing = $this->serviceFeatureModel->find($featureId);
+        if (!$existing) {
+            $this->json([
+                'success' => false,
+                'message' => 'Feature not found.'
+            ], 404);
+            return;
+        }
+
+        $serviceId = (int)($existing['service_id'] ?? 0);
+        $service = $serviceId > 0 ? $this->serviceModel->find($serviceId) : null;
+        if (!$service) {
+            $this->json([
+                'success' => false,
+                'message' => 'Service not found.'
+            ], 404);
+            return;
+        }
+
+        $input = $this->sanitizeServiceFeatureInput($_POST, $existing);
+        $errors = $this->validateServiceFeatureInput($input);
+
+        if (!empty($errors)) {
+            $this->json([
+                'success' => false,
+                'message' => 'Please fix the highlighted fields.',
+                'errors' => $errors
+            ], 422);
+            return;
+        }
+
+        $payload = [
+            'feature_text' => $input['feature_text'],
+            'icon_class' => $input['icon_class'] !== '' ? $input['icon_class'] : null,
+            'display' => $input['display'] ? 1 : 0
+        ];
+
+        if (isset($input['sort_order']) && $input['sort_order'] > 0) {
+            $payload['sort_order'] = (int)$input['sort_order'];
+        }
+
+        try {
+            $this->serviceFeatureModel->update($featureId, $payload);
+
+            if (isset($payload['sort_order'])) {
+                $all = $this->serviceFeatureModel->getByService($serviceId, true);
+                $orderedIds = array_column($all, 'id');
+
+                $currentIndex = array_search($featureId, $orderedIds, true);
+                if ($currentIndex !== false) {
+                    array_splice($orderedIds, $currentIndex, 1);
+                }
+
+                $desiredPosition = max(1, min((int)$payload['sort_order'], count($orderedIds) + 1));
+                array_splice($orderedIds, $desiredPosition - 1, 0, $featureId);
+                $this->serviceFeatureModel->reorderForService($serviceId, $orderedIds);
+            }
+        } catch (Exception $exception) {
+            error_log('Failed to update service feature: ' . $exception->getMessage());
+            $this->json([
+                'success' => false,
+                'message' => 'Unable to update the feature. Please try again.'
+            ], 500);
+            return;
+        }
+
+        $record = $this->serviceFeatureModel->find($featureId);
+        $formatted = $this->formatServiceFeatureForManager($record, $this->formatServiceForFeatureManager($service));
+
+        $this->json([
+            'success' => true,
+            'message' => 'Feature updated successfully.',
+            'feature' => $formatted
+        ]);
+    }
+
+    public function deleteServiceFeature($id) {
+        $this->userModel->requireAuth();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json([
+                'success' => false,
+                'message' => 'Invalid request method.'
+            ], 405);
+            return;
+        }
+
+        $featureId = (int)$id;
+        if ($featureId <= 0) {
+            $this->json([
+                'success' => false,
+                'message' => 'Feature not found.'
+            ], 404);
+            return;
+        }
+
+        $existing = $this->serviceFeatureModel->find($featureId);
+        if (!$existing) {
+            $this->json([
+                'success' => false,
+                'message' => 'Feature not found.'
+            ], 404);
+            return;
+        }
+
+        try {
+            $deleted = $this->serviceFeatureModel->delete($featureId);
+        } catch (Exception $exception) {
+            error_log('Failed to delete service feature: ' . $exception->getMessage());
+            $deleted = false;
+        }
+
+        if (!$deleted) {
+            $this->json([
+                'success' => false,
+                'message' => 'Unable to remove the feature. Please try again.'
+            ], 500);
+            return;
+        }
+
+        $this->json([
+            'success' => true,
+            'message' => 'Feature removed.'
+        ]);
+    }
+
+    public function toggleServiceFeature($id) {
+        $this->userModel->requireAuth();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json([
+                'success' => false,
+                'message' => 'Invalid request method.'
+            ], 405);
+            return;
+        }
+
+        $featureId = (int)$id;
+        if ($featureId <= 0) {
+            $this->json([
+                'success' => false,
+                'message' => 'Feature not found.'
+            ], 404);
+            return;
+        }
+
+        $existing = $this->serviceFeatureModel->find($featureId);
+        if (!$existing) {
+            $this->json([
+                'success' => false,
+                'message' => 'Feature not found.'
+            ], 404);
+            return;
+        }
+
+        $display = isset($_POST['display']) ? (bool)$_POST['display'] : !(bool)($existing['display'] ?? 1);
+
+        try {
+            $this->serviceFeatureModel->toggleDisplay($featureId, $display);
+        } catch (Exception $exception) {
+            error_log('Failed to toggle feature visibility: ' . $exception->getMessage());
+            $this->json([
+                'success' => false,
+                'message' => 'Unable to update visibility. Please try again.'
+            ], 500);
+            return;
+        }
+
+        $record = $this->serviceFeatureModel->find($featureId);
+        $service = $this->serviceModel->find((int)($existing['service_id'] ?? 0));
+
+        $this->json([
+            'success' => true,
+            'message' => $display ? 'Feature is now visible.' : 'Feature hidden from the site.',
+            'feature' => $this->formatServiceFeatureForManager($record ?? [], $this->formatServiceForFeatureManager($service ?? []))
+        ]);
+    }
+
+    public function reorderServiceFeatures() {
+        $this->userModel->requireAuth();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json([
+                'success' => false,
+                'message' => 'Invalid request method.'
+            ], 405);
+            return;
+        }
+
+        $serviceId = (int)($_POST['service_id'] ?? 0);
+        $orderPayload = $_POST['order'] ?? '[]';
+
+        if ($serviceId <= 0) {
+            $this->json([
+                'success' => false,
+                'message' => 'Service reference missing.'
+            ], 422);
+            return;
+        }
+
+        $service = $this->serviceModel->find($serviceId);
+        if (!$service) {
+            $this->json([
+                'success' => false,
+                'message' => 'Service not found.'
+            ], 404);
+            return;
+        }
+
+        if (!is_array($orderPayload)) {
+            $decoded = json_decode((string)$orderPayload, true);
+            $orderPayload = is_array($decoded) ? $decoded : [];
+        }
+
+        $orderedIds = array_values(array_filter(array_map('intval', $orderPayload), function ($value) {
+            return $value > 0;
+        }));
+
+        if (empty($orderedIds)) {
+            $this->json([
+                'success' => false,
+                'message' => 'Provide a valid order payload.'
+            ], 422);
+            return;
+        }
+
+        try {
+            $this->serviceFeatureModel->reorderForService($serviceId, $orderedIds);
+        } catch (Exception $exception) {
+            error_log('Failed to reorder service features: ' . $exception->getMessage());
+            $this->json([
+                'success' => false,
+                'message' => 'Unable to reorder features right now.'
+            ], 500);
+            return;
+        }
+
+        $features = $this->serviceFeatureModel->getByService($serviceId, true);
+        $formatted = array_map(function (array $feature) use ($service) {
+            return $this->formatServiceFeatureForManager($feature, $this->formatServiceForFeatureManager($service));
+        }, $features);
+
+        $this->json([
+            'success' => true,
+            'message' => 'Feature order updated.',
+            'features' => $formatted
+        ]);
+    }
     
     public function createService() {
         $this->userModel->requireAuth();
@@ -3118,6 +3552,90 @@ class AdminManagerController extends BaseController {
         return [$normalized, $errors];
     }
 
+    private function formatServiceForFeatureManager(array $service): array {
+        $priceAmount = null;
+        if (isset($service['price_amount']) && $service['price_amount'] !== '' && $service['price_amount'] !== null) {
+            $priceAmount = (float)$service['price_amount'];
+        }
+
+        return [
+            'id' => (int)($service['id'] ?? 0),
+            'title' => (string)($service['title'] ?? ''),
+            'description' => (string)($service['description'] ?? ''),
+            'icon' => (string)($service['icon'] ?? ''),
+            'price_label' => (string)($service['price_label'] ?? ''),
+            'price_amount' => $priceAmount,
+            'is_visible' => (int)(isset($service['is_visible'])
+                ? $service['is_visible']
+                : (($service['status'] ?? 'draft') === 'published' ? 1 : 0))
+        ];
+    }
+
+    private function formatServiceFeatureForManager(array $feature, array $service = []): array {
+        return [
+            'id' => (int)($feature['id'] ?? 0),
+            'service_id' => (int)($feature['service_id'] ?? ($service['id'] ?? 0)),
+            'feature_text' => (string)($feature['feature_text'] ?? ''),
+            'icon_class' => (string)($feature['icon_class'] ?? ''),
+            'sort_order' => (int)($feature['sort_order'] ?? 0),
+            'display' => isset($feature['display']) ? (int)$feature['display'] : 1
+        ];
+    }
+
+    private function sanitizeServiceFeatureInput(array $source, array $existing = []): array {
+        $textSource = $source['feature_text'] ?? ($existing['feature_text'] ?? '');
+        $featureText = trim((string)$textSource);
+        $featureText = mb_substr($featureText, 0, 255);
+
+        $iconSource = $source['icon_class'] ?? ($existing['icon_class'] ?? '');
+        $iconSanitized = trim((string)$iconSource);
+        $iconSanitized = preg_replace('/[^a-z0-9\s\-_:]/i', '', $iconSanitized);
+        $iconSanitized = trim(preg_replace('/\s+/', ' ', $iconSanitized ?? ''));
+        $iconSanitized = mb_substr($iconSanitized, 0, 100);
+
+        $sortRaw = $source['sort_order'] ?? null;
+        $sortOrder = null;
+        if ($sortRaw !== null && $sortRaw !== '') {
+            $sortOrder = (int)$sortRaw;
+            if ($sortOrder <= 0) {
+                $sortOrder = null;
+            }
+        }
+
+        $displayRaw = $source['display'] ?? ($existing['display'] ?? 1);
+        if (is_string($displayRaw)) {
+            $displayNormalized = strtolower(trim($displayRaw));
+            $display = !in_array($displayNormalized, ['0', 'false', 'no'], true);
+        } else {
+            $display = (bool)$displayRaw;
+        }
+
+        return [
+            'feature_text' => $featureText,
+            'icon_class' => $iconSanitized,
+            'sort_order' => $sortOrder,
+            'display' => $display
+        ];
+    }
+
+    private function validateServiceFeatureInput(array $data): array {
+        $errors = [];
+
+        if (mb_strlen($data['feature_text'] ?? '') < 3) {
+            $errors[] = 'Feature text must be at least 3 characters long.';
+        }
+
+        if ($data['sort_order'] !== null && $data['sort_order'] <= 0) {
+            $errors[] = 'Sort order must be a positive number when provided.';
+        }
+
+        if (isset($data['icon_class']) && mb_strlen($data['icon_class']) > 100) {
+            $errors[] = 'Icon class is too long.';
+        }
+
+        return $errors;
+    }
+
     private function formatServiceForManager(array $service): array {
         $priceAmount = null;
         if (isset($service['price_amount']) && $service['price_amount'] !== '' && $service['price_amount'] !== null) {
@@ -3127,7 +3645,14 @@ class AdminManagerController extends BaseController {
         $features = [];
         if (!empty($service['features']) && is_array($service['features'])) {
             foreach ($service['features'] as $feature) {
-                $features[] = (string)$feature;
+                if (is_array($feature)) {
+                    $text = trim((string)($feature['feature_text'] ?? ''));
+                    if ($text !== '') {
+                        $features[] = $text;
+                    }
+                } elseif (is_scalar($feature)) {
+                    $features[] = (string)$feature;
+                }
             }
         }
 

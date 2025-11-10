@@ -160,7 +160,7 @@ if (!function_exists('admin_nav_path_contains')) {
                             <i class="bi bi-collection"></i>
                             <span>Services List</span>
                         </a>
-                        <a class="nav-link nav-sublink <?= admin_nav_path_contains($requestedPath, '/admin/pages/services') ? 'active' : '' ?>" href="<?= url('admin/pages/services/edit?section=features') ?>">
+                        <a class="nav-link nav-sublink <?= $currentPageSlug === 'admin-service-features' ? 'active' : '' ?>" href="<?= url('admin/services/features') ?>">
                             <i class="bi bi-stars"></i>
                             <span>Service Features</span>
                         </a>
