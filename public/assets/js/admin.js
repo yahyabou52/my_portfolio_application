@@ -10,6 +10,7 @@
         initializeHomePageCtaManager();
         initializeServicesManager();
         initializeServiceFeaturesManager();
+    initializeServiceProcessManager();
         initializeServicesPreviewManager();
         initializeSkillsPreviewManager();
         initializeAboutHighlights();
@@ -22,6 +23,7 @@ const toggleRegistry = new WeakMap();
 const heroStatItemTimers = new WeakMap();
 const servicesFeedbackTimers = new WeakMap();
 const serviceFeatureFeedbackTimers = new WeakMap();
+const processStepFeedbackTimers = new WeakMap();
 
 function initializePreviewHandlers() {
     document.querySelectorAll('.admin-form').forEach(registerPreviewContainer);
@@ -4061,6 +4063,1076 @@ function initializeServiceFeaturesManager() {
         }
 
         return [];
+    }
+}
+
+function initializeServiceProcessManager() {
+    const container = document.querySelector('[data-process-manager]');
+    if (!container) {
+        return;
+    }
+
+    const serviceSelect = container.querySelector('[data-process-service-select]');
+    const addButton = container.querySelector('[data-process-add]');
+    const refreshButton = container.querySelector('[data-process-refresh]');
+    const list = container.querySelector('[data-process-list]');
+    const emptyState = container.querySelector('[data-process-empty]');
+    const feedback = container.querySelector('[data-process-feedback]');
+    const countSummary = container.querySelector('[data-process-count]');
+    const previewList = container.querySelector('[data-process-preview-list]');
+    const previewEmpty = container.querySelector('[data-process-preview-empty]');
+    const previewTitle = container.querySelector('[data-preview-service-title]');
+    const previewDescription = container.querySelector('[data-preview-service-description]');
+
+    const modalElement = document.getElementById('processStepModal');
+    const modalForm = modalElement ? modalElement.querySelector('[data-process-form]') : null;
+    const modalTitle = modalElement ? modalElement.querySelector('[data-process-modal-title]') : null;
+    const modalError = modalElement ? modalElement.querySelector('[data-process-modal-error]') : null;
+    const modalCancelButtons = modalElement ? modalElement.querySelectorAll('[data-process-modal-cancel]') : [];
+    const modalSubmitButton = modalElement ? modalElement.querySelector('[data-process-modal-submit]') : null;
+
+    const modalFields = {
+        title: modalElement ? modalElement.querySelector('[data-process-field="title"]') : null,
+        description: modalElement ? modalElement.querySelector('[data-process-field="description"]') : null,
+        iconClass: modalElement ? modalElement.querySelector('[data-process-field="icon_class"]') : null,
+        stepOrder: modalElement ? modalElement.querySelector('[data-process-field="step_order"]') : null,
+        display: modalElement ? modalElement.querySelector('[data-process-field="display"]') : null
+    };
+
+    const itemTemplate = document.getElementById('processStepItemTemplate');
+    const previewTemplate = document.getElementById('processStepPreviewTemplate');
+
+    if (!list || !itemTemplate || !itemTemplate.content || !previewTemplate || !previewTemplate.content || !modalElement || !modalForm) {
+        return;
+    }
+
+    const modalInstance = typeof bootstrap !== 'undefined' && bootstrap.Modal
+        ? new bootstrap.Modal(modalElement)
+        : null;
+
+    const routes = {
+        fetch: container.dataset.processFetchUrl || '',
+        store: container.dataset.processStoreUrl || '',
+        reorder: container.dataset.processReorderUrl || '',
+        updateTemplate: container.dataset.processUpdateTemplate || '',
+        deleteTemplate: container.dataset.processDeleteTemplate || '',
+        toggleTemplate: container.dataset.processToggleTemplate || ''
+    };
+
+    const services = parseServices(container.dataset.servicesMeta || '[]');
+    const serviceMap = new Map();
+    services.forEach(function (service) {
+        serviceMap.set(buildServiceKey(service.id), service);
+    });
+
+    let selectedServiceId = parseServiceId(container.dataset.initialService || '');
+    if (!serviceMap.has(buildServiceKey(selectedServiceId))) {
+        const fallback = services.length ? services[0] : null;
+        selectedServiceId = fallback ? fallback.id : null;
+    }
+
+    const initialSteps = parseSteps(container.dataset.initialSteps || '[]');
+
+    const state = {
+        selectedServiceId: selectedServiceId,
+        steps: normalizeStepList(initialSteps),
+        saved: cloneSteps(initialSteps),
+        editingId: null,
+        busy: false
+    };
+
+    if (serviceSelect) {
+        serviceSelect.value = state.selectedServiceId === null ? '' : String(state.selectedServiceId);
+        serviceSelect.addEventListener('change', handleServiceSwitch);
+    }
+
+    if (addButton) {
+        addButton.addEventListener('click', function () {
+            openStepModal();
+        });
+    }
+
+    if (refreshButton) {
+        refreshButton.addEventListener('click', function () {
+            reloadSteps(true);
+        });
+    }
+
+    modalCancelButtons.forEach(function (button) {
+        button.addEventListener('click', function (event) {
+            event.preventDefault();
+            closeModal();
+        });
+    });
+
+    modalElement.addEventListener('hidden.bs.modal', function () {
+        resetModal();
+        state.editingId = null;
+    });
+
+    modalForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        handleModalSubmit();
+    });
+
+    list.addEventListener('click', function (event) {
+        const target = event.target;
+        const editButton = target.closest('[data-process-edit]');
+        if (editButton) {
+            const item = editButton.closest('[data-process-item]');
+            if (item) {
+                openStepModal(Number(item.dataset.processId || 0));
+            }
+            return;
+        }
+
+        const deleteButton = target.closest('[data-process-delete]');
+        if (deleteButton) {
+            const item = deleteButton.closest('[data-process-item]');
+            if (item) {
+                const stepId = Number(item.dataset.processId || 0);
+                confirmDelete(stepId);
+            }
+        }
+    });
+
+    list.addEventListener('change', function (event) {
+        const toggle = event.target.closest('[data-process-toggle]');
+        if (toggle) {
+            const item = toggle.closest('[data-process-item]');
+            if (item) {
+                const stepId = Number(item.dataset.processId || 0);
+                toggleStep(stepId, toggle.checked, toggle);
+            }
+        }
+    });
+
+    list.addEventListener('sortable:reordered', handleReorder);
+
+    renderAll();
+
+    function handleServiceSwitch() {
+        if (!serviceSelect) {
+            return;
+        }
+
+        const selected = parseServiceId(serviceSelect.value || '');
+        if (selected === state.selectedServiceId) {
+            return;
+        }
+
+        state.selectedServiceId = selected;
+        state.steps = [];
+        state.saved = [];
+        renderAll();
+        reloadSteps(false);
+    }
+
+    function reloadSteps(showToast) {
+        if (!routes.fetch) {
+            renderAll();
+            return;
+        }
+
+        setBusy(true);
+        flashFeedback('Loading steps...', 'muted');
+
+        const payload = {
+            service_id: serviceIdToPayload(state.selectedServiceId)
+        };
+
+        sendRequest(routes.fetch, payload).then(function (payload) {
+            if (!payload.ok || !payload.data || payload.data.success === false) {
+                const message = payload.data && payload.data.message ? payload.data.message : 'Failed to load steps.';
+                throw new Error(message);
+            }
+
+            const incoming = Array.isArray(payload.data.steps) ? payload.data.steps : [];
+            state.steps = normalizeStepList(incoming);
+            state.saved = cloneSteps(state.steps);
+
+            if (payload.data.service) {
+                const meta = normalizeService(payload.data.service);
+                serviceMap.set(buildServiceKey(meta.id), meta);
+            }
+
+            const message = payload.data.message || 'Steps loaded.';
+            flashFeedback(message, 'muted');
+
+            if (showToast) {
+                showToastMessage(message, 'info');
+            }
+
+            renderAll();
+        }).catch(function (error) {
+            const message = error && error.message ? error.message : 'Unable to load steps. Please try again.';
+            flashFeedback(message, 'error');
+        }).finally(function () {
+            setBusy(false);
+        });
+    }
+
+    function handleModalSubmit() {
+        if (state.busy) {
+            return;
+        }
+
+        const formData = collectModalData();
+        if (!formData.valid) {
+            showModalError(formData.errors.join(' '));
+            return;
+        }
+
+        hideModalError();
+
+        const isEdit = !!state.editingId;
+        const stepId = state.editingId;
+
+        if (isEdit) {
+            updateStep(stepId, formData.values);
+        } else {
+            createStep(formData.values);
+        }
+    }
+
+    function createStep(values) {
+        if (!routes.store) {
+            return;
+        }
+
+        setBusy(true);
+        disableModalSubmit(true);
+
+        const payload = buildPayload(values);
+        payload.service_id = serviceIdToPayload(state.selectedServiceId);
+
+        sendRequest(routes.store, payload).then(function (payload) {
+            if (!payload.ok || !payload.data || payload.data.success === false) {
+                const message = payload.data && payload.data.message ? payload.data.message : 'Failed to add step.';
+                const errors = extractErrorMessages(payload.data);
+                if (errors.length) {
+                    showModalError(errors.join(' '));
+                } else {
+                    showModalError(message);
+                }
+                throw new Error(message);
+            }
+
+            const step = normalizeStep(payload.data.step);
+            state.steps.push(step);
+            state.steps = sortSteps(state.steps);
+            state.saved = cloneSteps(state.steps);
+
+            const message = payload.data.message || 'Process step added successfully.';
+            flashFeedback(message, 'success');
+            showToastMessage(message, 'success');
+
+            closeModal();
+            renderAll();
+        }).catch(function (error) {
+            const message = error && error.message ? error.message : 'Failed to add step. Please try again.';
+            showModalError(message);
+        }).finally(function () {
+            setBusy(false);
+            disableModalSubmit(false);
+        });
+    }
+
+    function updateStep(stepId, values) {
+        if (!routes.updateTemplate || !stepId) {
+            return;
+        }
+
+    const endpoint = buildProcessRoute(routes.updateTemplate, stepId);
+        setBusy(true);
+        disableModalSubmit(true);
+
+        const payload = buildPayload(values);
+
+        sendRequest(endpoint, payload).then(function (payload) {
+            if (!payload.ok || !payload.data || payload.data.success === false) {
+                const message = payload.data && payload.data.message ? payload.data.message : 'Failed to update step.';
+                const errors = extractErrorMessages(payload.data);
+                if (errors.length) {
+                    showModalError(errors.join(' '));
+                } else {
+                    showModalError(message);
+                }
+                throw new Error(message);
+            }
+
+            const nextStep = normalizeStep(payload.data.step);
+            const index = findStepIndex(stepId);
+            if (index !== -1) {
+                state.steps[index] = nextStep;
+            }
+
+            state.steps = sortSteps(state.steps);
+            state.saved = cloneSteps(state.steps);
+
+            const message = payload.data.message || 'Process step updated successfully.';
+            flashFeedback(message, 'success');
+            showToastMessage(message, 'success');
+
+            closeModal();
+            renderAll();
+        }).catch(function (error) {
+            const message = error && error.message ? error.message : 'Failed to update step. Please try again.';
+            showModalError(message);
+        }).finally(function () {
+            setBusy(false);
+            disableModalSubmit(false);
+        });
+    }
+
+    function confirmDelete(stepId) {
+        if (!stepId || !routes.deleteTemplate) {
+            return;
+        }
+
+        const step = getStep(stepId);
+        const label = step && step.title ? '"' + step.title + '"' : 'this step';
+
+        if (!window.confirm('Delete ' + label + '?')) {
+            return;
+        }
+
+    const endpoint = buildProcessRoute(routes.deleteTemplate, stepId);
+        setBusy(true);
+
+        sendRequest(endpoint, {
+            service_id: serviceIdToPayload(state.selectedServiceId)
+        }).then(function (payload) {
+            if (!payload.ok || !payload.data || payload.data.success === false) {
+                const message = payload.data && payload.data.message ? payload.data.message : 'Failed to delete step.';
+                throw new Error(message);
+            }
+
+            const index = findStepIndex(stepId);
+            if (index !== -1) {
+                state.steps.splice(index, 1);
+            }
+
+            state.steps = sortSteps(state.steps);
+            state.saved = cloneSteps(state.steps);
+
+            const message = payload.data.message || 'Process step removed.';
+            flashFeedback(message, 'warning');
+            showToastMessage(message, 'warning');
+            renderAll();
+        }).catch(function (error) {
+            const message = error && error.message ? error.message : 'Unable to delete step.';
+            flashFeedback(message, 'error');
+        }).finally(function () {
+            setBusy(false);
+        });
+    }
+
+    function toggleStep(stepId, visible, control) {
+        if (!routes.toggleTemplate || !stepId) {
+            return;
+        }
+
+    const endpoint = buildProcessRoute(routes.toggleTemplate, stepId);
+        if (control) {
+            control.disabled = true;
+        }
+
+        sendRequest(endpoint, {
+            display: visible ? 1 : 0
+        }).then(function (payload) {
+            if (!payload.ok || !payload.data || payload.data.success === false) {
+                const message = payload.data && payload.data.message ? payload.data.message : 'Failed to update visibility.';
+                throw new Error(message);
+            }
+
+            const nextStep = normalizeStep(payload.data.step);
+            const index = findStepIndex(stepId);
+            if (index !== -1) {
+                state.steps[index] = nextStep;
+            }
+
+            state.steps = sortSteps(state.steps);
+            state.saved = cloneSteps(state.steps);
+
+            const message = payload.data.message || (visible ? 'Process step is now visible.' : 'Process step hidden.');
+            flashFeedback(message, 'success');
+            renderAll();
+        }).catch(function (error) {
+            const message = error && error.message ? error.message : 'Unable to update visibility.';
+            flashFeedback(message, 'error');
+            if (control) {
+                control.checked = !visible;
+            }
+        }).finally(function () {
+            if (control) {
+                control.disabled = false;
+            }
+        });
+    }
+
+    function handleReorder() {
+        if (!routes.reorder || !state.steps.length) {
+            return;
+        }
+
+        const orderedIds = Array.from(list.querySelectorAll('[data-process-item]'))
+            .map(function (item) {
+                return Number(item.dataset.processId || 0);
+            })
+            .filter(function (id) {
+                return id > 0;
+            });
+
+        if (!orderedIds.length || orderedIds.length !== state.steps.length) {
+            return;
+        }
+
+        const lookup = new Map();
+        state.steps.forEach(function (step) {
+            lookup.set(step.id, step);
+        });
+
+        const reordered = [];
+        orderedIds.forEach(function (id) {
+            if (lookup.has(id)) {
+                reordered.push(lookup.get(id));
+            }
+        });
+
+        if (reordered.length !== state.steps.length) {
+            return;
+        }
+
+        reordered.forEach(function (step, index) {
+            step.step_order = index + 1;
+        });
+
+        state.steps = reordered;
+        renderAll();
+        flashFeedback('Saving new order...', 'muted');
+
+        sendRequest(routes.reorder, {
+            service_id: serviceIdToPayload(state.selectedServiceId),
+            order: JSON.stringify(orderedIds)
+        }).then(function (payload) {
+            if (!payload.ok || !payload.data || payload.data.success === false) {
+                const message = payload.data && payload.data.message ? payload.data.message : 'Failed to save order.';
+                throw new Error(message);
+            }
+
+            const incoming = Array.isArray(payload.data.steps) ? payload.data.steps : [];
+            state.steps = normalizeStepList(incoming);
+            state.saved = cloneSteps(state.steps);
+
+            const message = payload.data.message || 'Process order updated.';
+            flashFeedback(message, 'muted');
+        }).catch(function (error) {
+            const message = error && error.message ? error.message : 'Unable to save process order.';
+            flashFeedback(message, 'error');
+        });
+    }
+
+    function buildPayload(values) {
+        const payload = {
+            title: values.title,
+            description: values.description,
+            icon_class: values.iconClass,
+            display: values.display ? 1 : 0
+        };
+
+        if (values.stepOrder) {
+            payload.step_order = values.stepOrder;
+        }
+
+        return payload;
+    }
+
+    function buildProcessRoute(template, id) {
+        if (!template) {
+            return '';
+        }
+
+        const stepId = typeof id === 'number' ? id : parseInt(id, 10);
+        if (!stepId || Number.isNaN(stepId)) {
+            return template;
+        }
+
+        return template.replace(/__ID__/g, encodeURIComponent(stepId));
+    }
+
+    function openStepModal(stepId) {
+        state.editingId = stepId || null;
+        resetModal();
+
+        const isEdit = !!state.editingId;
+        if (modalTitle) {
+            modalTitle.textContent = isEdit ? 'Edit Step' : 'Add Step';
+        }
+
+        if (isEdit) {
+            const step = getStep(state.editingId);
+            if (!step) {
+                flashFeedback('Step not found.', 'error');
+                state.editingId = null;
+                return;
+            }
+
+            if (modalFields.title) {
+                modalFields.title.value = step.title;
+            }
+            if (modalFields.description) {
+                modalFields.description.value = step.description;
+            }
+            if (modalFields.iconClass) {
+                modalFields.iconClass.value = step.icon_class;
+            }
+            if (modalFields.stepOrder) {
+                modalFields.stepOrder.value = step.step_order || '';
+            }
+            if (modalFields.display) {
+                modalFields.display.checked = !!step.display;
+            }
+        } else if (modalFields.display) {
+            modalFields.display.checked = true;
+        }
+
+        showModal();
+        if (modalFields.title) {
+            modalFields.title.focus({ preventScroll: true });
+        }
+    }
+
+    function getStep(id) {
+        const index = findStepIndex(id);
+        if (index === -1) {
+            return null;
+        }
+        return state.steps[index];
+    }
+
+    function findStepIndex(id) {
+        const stepId = Number(id);
+        for (let index = 0; index < state.steps.length; index += 1) {
+            if (state.steps[index].id === stepId) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    function showModal() {
+        if (modalInstance) {
+            modalInstance.show();
+        } else {
+            modalElement.classList.add('show');
+            modalElement.removeAttribute('aria-hidden');
+            modalElement.style.display = 'block';
+        }
+    }
+
+    function closeModal() {
+        if (modalInstance) {
+            modalInstance.hide();
+        } else {
+            modalElement.classList.remove('show');
+            modalElement.setAttribute('aria-hidden', 'true');
+            modalElement.style.display = 'none';
+        }
+    }
+
+    function resetModal() {
+        if (modalForm) {
+            modalForm.reset();
+        }
+        hideModalError();
+        if (modalFields.display) {
+            modalFields.display.checked = true;
+        }
+    }
+
+    function disableModalSubmit(disabled) {
+        if (modalSubmitButton) {
+            modalSubmitButton.disabled = !!disabled;
+        }
+    }
+
+    function showModalError(message) {
+        if (!modalError) {
+            return;
+        }
+        modalError.textContent = message;
+        modalError.classList.remove('d-none');
+    }
+
+    function hideModalError() {
+        if (!modalError) {
+            return;
+        }
+        modalError.textContent = '';
+        modalError.classList.add('d-none');
+    }
+
+    function collectModalData() {
+        const errors = [];
+
+        const title = modalFields.title ? modalFields.title.value.trim() : '';
+        const description = modalFields.description ? modalFields.description.value.trim() : '';
+        const iconClass = modalFields.iconClass ? modalFields.iconClass.value.trim() : '';
+        const orderRaw = modalFields.stepOrder ? modalFields.stepOrder.value.trim() : '';
+        const display = modalFields.display ? modalFields.display.checked : true;
+
+        let stepOrder = null;
+        if (orderRaw !== '') {
+            const parsed = parseInt(orderRaw, 10);
+            if (Number.isNaN(parsed) || parsed <= 0) {
+                errors.push('Step order must be a positive number.');
+            } else {
+                stepOrder = parsed;
+            }
+        }
+
+        if (title.length < 3) {
+            errors.push('Step title must be at least 3 characters long.');
+        }
+
+        return {
+            valid: errors.length === 0,
+            errors: errors,
+            values: {
+                title: title,
+                description: description,
+                iconClass: iconClass,
+                stepOrder: stepOrder,
+                display: display
+            }
+        };
+    }
+
+    function renderAll() {
+        renderServiceMeta();
+        renderStepList();
+        renderPreview();
+        updateCountSummary();
+    }
+
+    function renderServiceMeta() {
+        const service = serviceMap.get(buildServiceKey(state.selectedServiceId));
+        if (previewTitle) {
+            previewTitle.textContent = service && service.title ? service.title : 'All Services';
+        }
+
+        if (previewDescription) {
+            previewDescription.textContent = service && service.description ? service.description : 'Steps displayed on the Services page timeline.';
+        }
+    }
+
+    function renderStepList() {
+        list.innerHTML = '';
+
+        if (!state.steps.length) {
+            if (emptyState) {
+                emptyState.classList.remove('d-none');
+            }
+            return;
+        }
+
+        if (emptyState) {
+            emptyState.classList.add('d-none');
+        }
+
+        state.steps.forEach(function (step, index) {
+            const fragment = itemTemplate.content.firstElementChild.cloneNode(true);
+            fragment.dataset.processId = String(step.id);
+            fragment.dataset.sortableId = 'process-' + step.id;
+
+            const iconEl = fragment.querySelector('[data-process-icon] i');
+            renderStepIcon(iconEl, step.icon_class);
+
+            const titleEl = fragment.querySelector('[data-process-title]');
+            if (titleEl) {
+                titleEl.textContent = step.title || 'Process step';
+            }
+
+            const excerptEl = fragment.querySelector('[data-process-excerpt]');
+            if (excerptEl) {
+                excerptEl.textContent = step.description ? truncate(step.description, 140) : 'No description provided yet.';
+            }
+
+            const orderBadge = fragment.querySelector('[data-process-order]');
+            if (orderBadge) {
+                orderBadge.textContent = '#' + (index + 1);
+            }
+
+            const hiddenBadge = fragment.querySelector('[data-process-hidden]');
+            if (hiddenBadge) {
+                hiddenBadge.classList.toggle('d-none', !!step.display);
+            }
+
+            const toggle = fragment.querySelector('[data-process-toggle]');
+            if (toggle) {
+                toggle.checked = !!step.display;
+            }
+
+            fragment.classList.toggle('process-step-item-hidden', !step.display);
+
+            list.appendChild(fragment);
+        });
+    }
+
+    function renderPreview() {
+        previewList.innerHTML = '';
+
+        const visibleSteps = state.steps.filter(function (step) {
+            return !!step.display;
+        });
+
+        if (!visibleSteps.length) {
+            if (previewEmpty) {
+                previewEmpty.classList.remove('d-none');
+            }
+            return;
+        }
+
+        if (previewEmpty) {
+            previewEmpty.classList.add('d-none');
+        }
+
+        visibleSteps.forEach(function (step) {
+            const fragment = previewTemplate.content.firstElementChild.cloneNode(true);
+            const iconElement = fragment.querySelector('[data-process-preview-icon]');
+            renderStepIcon(iconElement, step.icon_class);
+
+            const titleEl = fragment.querySelector('[data-process-preview-title]');
+            if (titleEl) {
+                titleEl.textContent = step.title || '';
+            }
+
+            const descriptionEl = fragment.querySelector('[data-process-preview-description]');
+            if (descriptionEl) {
+                descriptionEl.textContent = step.description || '';
+            }
+
+            previewList.appendChild(fragment);
+        });
+    }
+
+    function renderStepIcon(target, iconClass) {
+        if (!target) {
+            return;
+        }
+
+        const fallback = 'bi-check-circle';
+        const raw = typeof iconClass === 'string' ? iconClass.trim() : '';
+
+        if (!raw) {
+            target.className = 'bi ' + fallback;
+            return;
+        }
+
+        const classes = raw.split(/\s+/).filter(Boolean);
+        const hasBootstrapIcon = classes.some(function (cls) {
+            return cls === 'bi' || cls.indexOf('bi-') === 0;
+        });
+
+        if (hasBootstrapIcon) {
+            target.className = classes.join(' ');
+        } else {
+            target.className = ['bi'].concat(classes).join(' ');
+        }
+    }
+
+    function updateCountSummary() {
+        if (!countSummary) {
+            return;
+        }
+
+        const total = state.steps.length;
+        const visible = state.steps.filter(function (step) {
+            return !!step.display;
+        }).length;
+
+        if (!total) {
+            countSummary.textContent = '';
+            return;
+        }
+
+        countSummary.textContent = visible + ' visible of ' + total + ' total';
+    }
+
+    function setBusy(isBusy) {
+        state.busy = !!isBusy;
+
+        if (addButton) {
+            addButton.disabled = state.busy;
+        }
+
+        if (refreshButton) {
+            refreshButton.disabled = state.busy;
+        }
+
+        if (serviceSelect) {
+            serviceSelect.disabled = state.busy;
+        }
+    }
+
+    function flashFeedback(message, tone) {
+        if (!feedback) {
+            return;
+        }
+
+        clearFeedbackTimer();
+        applyFeedbackTone(tone || 'muted');
+        feedback.textContent = message;
+
+        const timerId = window.setTimeout(function () {
+            processStepFeedbackTimers.delete(feedback);
+            feedback.textContent = '';
+            applyFeedbackTone('muted');
+        }, 2500);
+
+        processStepFeedbackTimers.set(feedback, timerId);
+    }
+
+    function applyFeedbackTone(tone) {
+        if (!feedback) {
+            return;
+        }
+
+        feedback.classList.remove('text-success', 'text-danger', 'text-warning', 'text-muted');
+
+        switch (tone) {
+            case 'success':
+                feedback.classList.add('text-success');
+                break;
+            case 'error':
+                feedback.classList.add('text-danger');
+                break;
+            case 'warning':
+                feedback.classList.add('text-warning');
+                break;
+            default:
+                feedback.classList.add('text-muted');
+        }
+    }
+
+    function clearFeedbackTimer() {
+        if (!feedback) {
+            return;
+        }
+
+        if (processStepFeedbackTimers.has(feedback)) {
+            window.clearTimeout(processStepFeedbackTimers.get(feedback));
+            processStepFeedbackTimers.delete(feedback);
+        }
+    }
+
+    function showToastMessage(message, tone) {
+        if (typeof showToast === 'function') {
+            showToast(message, tone || 'info', true);
+        }
+    }
+
+    function sendRequest(url, payload) {
+        if (!url) {
+            return Promise.reject(new Error('Endpoint not configured.'));
+        }
+
+        const formData = new FormData();
+        Object.keys(payload || {}).forEach(function (key) {
+            const value = payload[key];
+            if (typeof value === 'undefined' || value === null) {
+                return;
+            }
+            formData.append(key, value);
+        });
+
+        return fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: formData,
+            credentials: 'same-origin'
+        }).then(parseProcessResponse);
+    }
+
+    function parseProcessResponse(response) {
+        const contentType = response.headers.get('content-type') || '';
+        const isJson = contentType.indexOf('application/json') !== -1;
+
+        if (!isJson) {
+            return response.text().then(function (text) {
+                return {
+                    ok: response.ok,
+                    status: response.status,
+                    data: {
+                        success: response.ok,
+                        message: text || 'Server returned an unexpected response.'
+                    }
+                };
+            });
+        }
+
+        return response.json().then(function (data) {
+            return {
+                ok: response.ok,
+                status: response.status,
+                data: data
+            };
+        });
+    }
+
+    function parseServices(raw) {
+        if (!raw) {
+            return [];
+        }
+
+        try {
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) {
+                return [];
+            }
+
+            return parsed.map(normalizeService).filter(Boolean);
+        } catch (error) {
+            console.warn('Failed to parse process services payload', error);
+            return [];
+        }
+    }
+
+    function normalizeService(service) {
+        if (!service) {
+            return null;
+        }
+
+        const id = typeof service.id === 'number' || service.id === null ? service.id : Number(service.id || 0);
+        const description = typeof service.description === 'string' ? service.description.trim() : '';
+
+        return {
+            id: Number.isFinite(id) ? id : null,
+            title: typeof service.title === 'string' ? service.title.trim() : 'All Services',
+            description: description,
+            icon: typeof service.icon === 'string' ? service.icon.trim() : ''
+        };
+    }
+
+    function parseSteps(raw) {
+        if (!raw) {
+            return [];
+        }
+
+        try {
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) {
+                return [];
+            }
+
+            return normalizeStepList(parsed);
+        } catch (error) {
+            console.warn('Failed to parse process steps payload', error);
+            return [];
+        }
+    }
+
+    function normalizeStep(step) {
+        if (!step) {
+            return null;
+        }
+
+        const id = Number(step.id || step.step_id || 0);
+        const parentId = step.service_id === null || typeof step.service_id === 'undefined'
+            ? null
+            : Number(step.service_id);
+        const order = Number(step.step_order || step.order || 0);
+        const displayRaw = typeof step.display !== 'undefined' ? step.display : 1;
+        const display = !(String(displayRaw).toLowerCase() === '0' || String(displayRaw).toLowerCase() === 'false');
+
+        return {
+            id: id,
+            service_id: Number.isFinite(parentId) ? parentId : null,
+            title: typeof step.title === 'string' ? step.title.trim() : '',
+            description: typeof step.description === 'string' ? step.description.trim() : '',
+            icon_class: typeof step.icon_class === 'string' ? step.icon_class.trim() : '',
+            step_order: Number.isFinite(order) && order > 0 ? order : 0,
+            display: display
+        };
+    }
+
+    function normalizeStepList(list) {
+        const normalized = list.map(normalizeStep).filter(Boolean);
+        return sortSteps(normalized);
+    }
+
+    function sortSteps(steps) {
+        return steps.slice().sort(function (a, b) {
+            if (a.step_order === b.step_order) {
+                return a.id - b.id;
+            }
+            return a.step_order - b.step_order;
+        }).map(function (step, index) {
+            if (!step.step_order || step.step_order <= 0) {
+                step.step_order = index + 1;
+            }
+            return step;
+        });
+    }
+
+    function cloneSteps(list) {
+        return list.map(function (step) {
+            return {
+                id: step.id,
+                service_id: step.service_id,
+                title: step.title,
+                description: step.description,
+                icon_class: step.icon_class,
+                step_order: step.step_order,
+                display: step.display
+            };
+        });
+    }
+
+    function extractErrorMessages(payload) {
+        if (!payload || !payload.errors) {
+            return [];
+        }
+
+        if (Array.isArray(payload.errors)) {
+            return payload.errors;
+        }
+
+        if (typeof payload.errors === 'object') {
+            return Object.values(payload.errors).filter(function (value) {
+                return typeof value === 'string' && value.trim() !== '';
+            });
+        }
+
+        return [];
+    }
+
+    function parseServiceId(raw) {
+        if (raw === null || raw === '' || raw === 'null') {
+            return null;
+        }
+
+        const parsed = Number(raw);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    }
+
+    function buildServiceKey(id) {
+        return id === null ? '__global__' : String(id);
+    }
+
+    function serviceIdToPayload(id) {
+        return id === null ? '' : String(id);
+    }
+
+    function truncate(text, limit) {
+        if (!text || text.length <= limit) {
+            return text || '';
+        }
+        return text.slice(0, limit - 1) + '…';
     }
 }
 

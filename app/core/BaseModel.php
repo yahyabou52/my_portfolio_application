@@ -80,7 +80,7 @@ abstract class BaseModel {
         // Filter data based on fillable fields
         $filteredData = [];
         foreach ($this->fillable as $field) {
-            if (isset($data[$field])) {
+            if (array_key_exists($field, $data)) {
                 $filteredData[$field] = $data[$field];
             }
         }
@@ -98,7 +98,18 @@ abstract class BaseModel {
         $stmt = $this->db->prepare($sql);
         
         foreach ($filteredData as $column => $value) {
-            $stmt->bindValue(":{$column}", $value);
+            $type = PDO::PARAM_STR;
+
+            if ($value === null) {
+                $type = PDO::PARAM_NULL;
+            } elseif (is_int($value)) {
+                $type = PDO::PARAM_INT;
+            } elseif (is_bool($value)) {
+                $type = PDO::PARAM_INT;
+                $value = $value ? 1 : 0;
+            }
+
+            $stmt->bindValue(":{$column}", $value, $type);
         }
         
         $stmt->execute();
@@ -109,7 +120,7 @@ abstract class BaseModel {
         // Filter data based on fillable fields
         $filteredData = [];
         foreach ($this->fillable as $field) {
-            if (isset($data[$field])) {
+            if (array_key_exists($field, $data)) {
                 $filteredData[$field] = $data[$field];
             }
         }
@@ -128,7 +139,18 @@ abstract class BaseModel {
         $stmt = $this->db->prepare($sql);
         
         foreach ($filteredData as $column => $value) {
-            $stmt->bindValue(":{$column}", $value);
+            $type = PDO::PARAM_STR;
+
+            if ($value === null) {
+                $type = PDO::PARAM_NULL;
+            } elseif (is_int($value)) {
+                $type = PDO::PARAM_INT;
+            } elseif (is_bool($value)) {
+                $type = PDO::PARAM_INT;
+                $value = $value ? 1 : 0;
+            }
+
+            $stmt->bindValue(":{$column}", $value, $type);
         }
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
         

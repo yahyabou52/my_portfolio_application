@@ -202,13 +202,6 @@ $hasTimelineContent = !empty($timelineGroups['experience']['items']) || !empty($
 </section>
 <?php endif; ?>
 
-<?php if (!empty($pageContent)): ?>
-<section class="about-extra-content py-5">
-    <div class="container" data-aos="fade-up">
-        <?= $pageContent ?>
-    </div>
-</section>
-<?php endif; ?>
 
 <?php if (!empty($testimonials)): ?>
 <section class="testimonials-section py-5 bg-light">

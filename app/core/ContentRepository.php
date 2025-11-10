@@ -316,8 +316,25 @@ class ContentRepository {
         return $this->getActiveServices($limit);
     }
 
-    public function getServiceProcessSteps(): array {
-        return $this->serviceProcessModel->getPublished();
+    public function getServiceProcessSteps(?int $serviceId = null): array {
+        $steps = $this->serviceProcessModel->getPublished($serviceId);
+
+        return array_map(function (array $step) {
+            $iconClass = trim((string)($step['icon_class'] ?? ''));
+            if ($iconClass === '') {
+                $iconClass = 'bi-check-circle';
+            }
+
+            return [
+                'id' => (int)($step['id'] ?? 0),
+                'service_id' => isset($step['service_id']) ? (int)$step['service_id'] : null,
+                'step_order' => (int)($step['step_order'] ?? 0),
+                'icon_class' => $iconClass,
+                'title' => (string)($step['title'] ?? ''),
+                'description' => (string)($step['description'] ?? ''),
+                'display' => (int)($step['display'] ?? 1)
+            ];
+        }, $steps);
     }
 
     public function getPricingPackages(): array {

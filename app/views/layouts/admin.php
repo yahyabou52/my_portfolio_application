@@ -164,7 +164,7 @@ if (!function_exists('admin_nav_path_contains')) {
                             <i class="bi bi-stars"></i>
                             <span>Service Features</span>
                         </a>
-                        <a class="nav-link nav-sublink <?= admin_nav_path_contains($requestedPath, '/admin/pages/services') ? 'active' : '' ?>" href="<?= url('admin/pages/services/edit?section=process') ?>">
+                        <a class="nav-link nav-sublink <?= admin_nav_path_contains($requestedPath, '/admin/services/process') ? 'active' : '' ?>" href="<?= url('admin/services/process') ?>">
                             <i class="bi bi-diagram-3"></i>
                             <span>Design Process Steps</span>
                         </a>

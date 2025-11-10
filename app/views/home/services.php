@@ -136,7 +136,7 @@ $faqSubtitle = $faqSection['subtitle'] ?? 'Common questions about scope, timelin
                 <?php foreach ($processSteps as $index => $step): ?>
                     <?php
                     $stepNumber = str_pad((string)($index + 1), 2, '0', STR_PAD_LEFT);
-                    $stepIcon = $step['icon'] ?? 'bi-check-circle';
+                    $stepIcon = $step['icon_class'] ?? ($step['icon'] ?? 'bi-check-circle');
                     ?>
                     <div class="col-lg-3 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="<?= (int)$index * 100 ?>">
                         <div class="process-step">
