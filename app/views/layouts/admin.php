@@ -152,10 +152,6 @@ if (!function_exists('admin_nav_path_contains')) {
                             <i class="bi bi-clock-history"></i>
                             <span>Timeline</span>
                         </a>
-                        <a class="nav-link nav-sublink <?= strpos($currentPageSlug, 'skills') !== false ? 'active' : '' ?>" href="<?= url('admin/skills') ?>">
-                            <i class="bi bi-list-check"></i>
-                            <span>Skills (Detailed)</span>
-                        </a>
                     </div>
 
                     <div class="nav-section">
