@@ -12,7 +12,7 @@ require_once ROOT_PATH . '/app/models/ProjectImage.php';
 require_once ROOT_PATH . '/app/models/Testimonial.php';
 require_once ROOT_PATH . '/app/models/Skill.php';
 require_once ROOT_PATH . '/app/models/TimelineItem.php';
-require_once ROOT_PATH . '/app/models/FaqItem.php';
+require_once ROOT_PATH . '/app/models/Faq.php';
 require_once ROOT_PATH . '/app/models/Page.php';
 require_once ROOT_PATH . '/app/models/NavigationMenu.php';
 
@@ -47,7 +47,7 @@ class ContentRepository {
         $this->testimonialModel = new Testimonial();
         $this->skillAggregator = new Skill();
         $this->timelineModel = new TimelineItem();
-        $this->faqModel = new FaqItem();
+    $this->faqModel = new Faq();
         $this->pageModel = new Page();
         $this->navigationModel = new NavigationMenu();
 
@@ -393,6 +393,18 @@ class ContentRepository {
     }
 
     public function getFaq(string $page): array {
-        return $this->faqModel->getActiveByPage($page);
+        if (strtolower($page) !== 'services') {
+            return [];
+        }
+
+        try {
+            return $this->faqModel->allVisible();
+        } catch (\PDOException $exception) {
+            if ($exception->getCode() === '42S02') {
+                return [];
+            }
+
+            throw $exception;
+        }
     }
 }

@@ -147,6 +147,94 @@ function ensurePricingPlans(PDO $connection): void
     }
 }
 
+function ensureFaqs(PDO $connection): void
+{
+    $table = 'faqs';
+
+    if (!tableExists($connection, $table)) {
+        $connection->exec(
+            "CREATE TABLE `{$table}` (
+                `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `question` VARCHAR(255) NOT NULL,
+                `answer` TEXT NOT NULL,
+                `sort_order` INT UNSIGNED NOT NULL DEFAULT 0,
+                `visible` TINYINT(1) NOT NULL DEFAULT 1,
+                `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                INDEX `idx_faqs_order` (`sort_order`),
+                INDEX `idx_faqs_visible` (`visible`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+
+        echo "Created {$table} table.\n";
+
+        if (tableExists($connection, 'faq_items')) {
+            $query = $connection->prepare(
+                "SELECT question, answer, sort_order, is_active
+                   FROM faq_items
+                  WHERE page = :page
+                  ORDER BY sort_order ASC, id ASC"
+            );
+
+            $query->execute([':page' => 'services']);
+            $rows = $query->fetchAll(PDO::FETCH_ASSOC);
+
+            if ($rows) {
+                $insert = $connection->prepare(
+                    "INSERT INTO `{$table}` (question, answer, sort_order, visible, created_at, updated_at)
+                     VALUES (:question, :answer, :sort_order, :visible, NOW(), NOW())"
+                );
+
+                foreach ($rows as $row) {
+                    $insert->execute([
+                        ':question' => trim((string)($row['question'] ?? '')),
+                        ':answer' => trim((string)($row['answer'] ?? '')),
+                        ':sort_order' => (int)($row['sort_order'] ?? 0),
+                        ':visible' => !empty($row['is_active']) ? 1 : 0
+                    ]);
+                }
+
+                echo "Migrated existing FAQ items into {$table}.\n";
+            }
+        }
+    } else {
+        if (!columnExists($connection, $table, 'visible')) {
+            addColumn($connection, $table, "`visible` TINYINT(1) NOT NULL DEFAULT 1 AFTER `sort_order`");
+            echo "Added {$table}.visible column.\n";
+        } else {
+            $connection->exec("ALTER TABLE `{$table}` MODIFY COLUMN `visible` TINYINT(1) NOT NULL DEFAULT 1");
+        }
+
+        if (!columnExists($connection, $table, 'sort_order')) {
+            addColumn($connection, $table, "`sort_order` INT UNSIGNED NOT NULL DEFAULT 0 AFTER `answer`");
+            echo "Added {$table}.sort_order column.\n";
+        } else {
+            $connection->exec("ALTER TABLE `{$table}` MODIFY COLUMN `sort_order` INT UNSIGNED NOT NULL DEFAULT 0");
+        }
+
+        if (!columnExists($connection, $table, 'created_at')) {
+            addColumn($connection, $table, "`created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
+            echo "Added {$table}.created_at column.\n";
+        }
+
+        if (!columnExists($connection, $table, 'updated_at')) {
+            addColumn($connection, $table, "`updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+            echo "Added {$table}.updated_at column.\n";
+        }
+
+        if (!indexExists($connection, $table, 'idx_faqs_order')) {
+            $connection->exec("ALTER TABLE `{$table}` ADD INDEX `idx_faqs_order` (`sort_order`)");
+            echo "Added idx_faqs_order index.\n";
+        }
+
+        if (!indexExists($connection, $table, 'idx_faqs_visible')) {
+            $connection->exec("ALTER TABLE `{$table}` ADD INDEX `idx_faqs_visible` (`visible`)");
+            echo "Added idx_faqs_visible index.\n";
+        }
+    }
+}
+
 function ensureDesignProcessSteps(PDO $connection): void
 {
     $table = 'design_process_steps';
@@ -262,6 +350,7 @@ function ensureDesignProcessSteps(PDO $connection): void
 
 try {
     ensurePricingPlans($connection);
+    ensureFaqs($connection);
     ensureDesignProcessSteps($connection);
 
     if (!columnExists($connection, 'service_features', 'icon_class')) {

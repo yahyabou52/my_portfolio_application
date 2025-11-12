@@ -172,9 +172,9 @@ if (!function_exists('admin_nav_path_contains')) {
                             <i class="bi bi-currency-dollar"></i>
                             <span>Pricing Plans</span>
                         </a>
-                        <a class="nav-link nav-sublink <?= admin_nav_path_contains($requestedPath, '/admin/pages/services') ? 'active' : '' ?>" href="<?= url('admin/pages/services/edit?section=faq') ?>">
+                        <a class="nav-link nav-sublink <?= admin_nav_path_contains($requestedPath, '/admin/services/faqs') ? 'active' : '' ?>" href="<?= url('admin/services/faqs') ?>">
                             <i class="bi bi-question-circle"></i>
-                            <span>FAQ Items</span>
+                            <span>FAQs</span>
                         </a>
                     </div>
 

@@ -1,12 +1,4 @@
 <div class="container-fluid py-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3 mb-0">Admin Login</h1>
-            </div>
-        </div>
-    </div>
-    
     <div class="row justify-content-center">
         <div class="col-md-6 col-lg-4">
             <div class="card shadow">
@@ -46,12 +38,12 @@
                         </button>
                     </form>
                     
-                    <div class="mt-4 text-center">
+                    <!-- <div class="mt-4 text-center">
                         <small class="text-muted">
                             <i class="bi bi-info-circle me-1"></i>
                             Default credentials: admin / admin123
                         </small>
-                    </div>
+                    </div> -->
                 </div>
             </div>
         </div>

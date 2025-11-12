@@ -9,6 +9,7 @@ require_once ROOT_PATH . '/app/models/Service.php';
 require_once ROOT_PATH . '/app/models/ServiceFeature.php';
 require_once ROOT_PATH . '/app/models/ServiceProcessStep.php';
 require_once ROOT_PATH . '/app/models/PricingPlan.php';
+require_once ROOT_PATH . '/app/models/Faq.php';
 require_once ROOT_PATH . '/app/models/Project.php';
 require_once ROOT_PATH . '/app/models/NavigationMenu.php';
 require_once ROOT_PATH . '/app/models/Media.php';
@@ -33,6 +34,7 @@ class AdminManagerController extends BaseController {
     private $serviceFeatureModel;
     private $serviceProcessModel;
     private $pricingPlanModel;
+    private $faqModel;
     private $projectModel;
     private $navigationModel;
     private $mediaModel;
@@ -52,7 +54,8 @@ class AdminManagerController extends BaseController {
         $this->serviceModel = new Service();
         $this->serviceFeatureModel = new ServiceFeature();
         $this->serviceProcessModel = new ServiceProcessStep();
-    $this->pricingPlanModel = new PricingPlan();
+        $this->pricingPlanModel = new PricingPlan();
+        $this->faqModel = new Faq();
         $this->projectModel = new Project();
         $this->navigationModel = new NavigationMenu();
         $this->mediaModel = new Media();
@@ -4602,7 +4605,7 @@ class AdminManagerController extends BaseController {
         }
 
         $orderedIds = array_map('intval', $orderedIds);
-        $orderedIds = array_filter($orderedIds, static fn($value) => $value > 0);
+        $orderedIds = array_filter($orderedIds, static fn ($value) => $value > 0);
 
         if (empty($orderedIds)) {
             $this->json([
@@ -4634,6 +4637,398 @@ class AdminManagerController extends BaseController {
         ]);
     }
 
+    // FAQ MANAGEMENT
+    public function faqs() {
+            $this->userModel->requireAuth();
+
+            $faqs = $this->getFormattedFaqs();
+            $stats = $this->buildFaqStats($faqs);
+
+            $routes = [
+                'fetch' => url('admin/services/faqs/list'),
+                'store' => url('admin/services/faqs'),
+                'update_template' => url('admin/services/faqs/__ID__/update'),
+                'delete_template' => url('admin/services/faqs/__ID__/delete'),
+                'toggle_template' => url('admin/services/faqs/__ID__/toggle'),
+                'reorder' => url('admin/services/faqs/reorder')
+            ];
+
+            $data = [
+                'title' => 'FAQs - Admin',
+                'page' => 'admin-faqs',
+                'faqs_json' => htmlspecialchars(json_encode($faqs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8'),
+                'routes_json' => htmlspecialchars(json_encode($routes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8'),
+                'stats' => $stats
+            ];
+
+            $this->render('admin/faqs', 'admin', $data);
+        }
+
+        public function fetchFaqs() {
+            $this->userModel->requireAuth();
+
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                $this->json([
+                    'success' => false,
+                    'message' => 'Invalid request method.'
+                ], 405);
+                return;
+            }
+
+            $faqs = $this->getFormattedFaqs();
+            $stats = $this->buildFaqStats($faqs);
+
+            $this->json([
+                'success' => true,
+                'message' => 'FAQs refreshed.',
+                'faqs' => $faqs,
+                'stats' => $stats
+            ]);
+        }
+
+        public function storeFaq() {
+            $this->userModel->requireAuth();
+
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                $this->json([
+                    'success' => false,
+                    'message' => 'Invalid request method.'
+                ], 405);
+                return;
+            }
+
+            $input = $this->sanitizeFaqInput($_POST);
+            $errors = $this->validateFaqInput($input);
+
+            if (!empty($errors)) {
+                $this->json([
+                    'success' => false,
+                    'message' => 'Please review the highlighted fields.',
+                    'errors' => $errors
+                ], 422);
+                return;
+            }
+
+            try {
+                $existing = $this->faqModel->allForManager();
+            } catch (Throwable $throwable) {
+                error_log('Failed to load FAQs before create: ' . $throwable->getMessage());
+                $this->json([
+                    'success' => false,
+                    'message' => 'Unable to load existing FAQs. Please run the database updater and try again.'
+                ], 500);
+                return;
+            }
+            $payload = [
+                'question' => $input['question'],
+                'answer' => $input['answer'],
+                'sort_order' => count($existing),
+                'visible' => $input['visible'] ? 1 : 0
+            ];
+
+            try {
+                $faqId = (int)$this->faqModel->create($payload);
+            } catch (Exception $exception) {
+                error_log('Failed to create FAQ: ' . $exception->getMessage());
+                $this->json([
+                    'success' => false,
+                    'message' => 'Unable to create the FAQ. Please try again.'
+                ], 500);
+                return;
+            }
+
+            $faqs = $this->getFormattedFaqs();
+            $stats = $this->buildFaqStats($faqs);
+            $created = null;
+
+            foreach ($faqs as $faq) {
+                if ($faq['id'] === $faqId) {
+                    $created = $faq;
+                    break;
+                }
+            }
+
+            $this->json([
+                'success' => true,
+                'message' => 'FAQ created successfully.',
+                'faq' => $created,
+                'faqs' => $faqs,
+                'stats' => $stats
+            ]);
+        }
+
+        public function updateFaq($id) {
+            $this->userModel->requireAuth();
+
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                $this->json([
+                    'success' => false,
+                    'message' => 'Invalid request method.'
+                ], 405);
+                return;
+            }
+
+            $faqId = (int)$id;
+            if ($faqId <= 0) {
+                $this->json([
+                    'success' => false,
+                    'message' => 'FAQ not found.'
+                ], 404);
+                return;
+            }
+
+            try {
+                $existing = $this->faqModel->find($faqId);
+            } catch (Throwable $throwable) {
+                error_log('Failed to load FAQ for update: ' . $throwable->getMessage());
+                $this->json([
+                    'success' => false,
+                    'message' => 'Unable to load the FAQ. Please try again.'
+                ], 500);
+                return;
+            }
+            if (!$existing) {
+                $this->json([
+                    'success' => false,
+                    'message' => 'FAQ not found.'
+                ], 404);
+                return;
+            }
+
+            $input = $this->sanitizeFaqInput($_POST, $existing);
+            $errors = $this->validateFaqInput($input);
+
+            if (!empty($errors)) {
+                $this->json([
+                    'success' => false,
+                    'message' => 'Please review the highlighted fields.',
+                    'errors' => $errors
+                ], 422);
+                return;
+            }
+
+            $payload = [
+                'question' => $input['question'],
+                'answer' => $input['answer'],
+                'visible' => $input['visible'] ? 1 : 0
+            ];
+
+            try {
+                $this->faqModel->update($faqId, $payload);
+            } catch (Exception $exception) {
+                error_log('Failed to update FAQ: ' . $exception->getMessage());
+                $this->json([
+                    'success' => false,
+                    'message' => 'Unable to update the FAQ. Please try again.'
+                ], 500);
+                return;
+            }
+
+            $faqs = $this->getFormattedFaqs();
+            $stats = $this->buildFaqStats($faqs);
+            $updated = null;
+
+            foreach ($faqs as $faq) {
+                if ($faq['id'] === $faqId) {
+                    $updated = $faq;
+                    break;
+                }
+            }
+
+            $this->json([
+                'success' => true,
+                'message' => 'FAQ updated successfully.',
+                'faq' => $updated,
+                'faqs' => $faqs,
+                'stats' => $stats
+            ]);
+        }
+
+        public function deleteFaq($id) {
+            $this->userModel->requireAuth();
+
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                $this->json([
+                    'success' => false,
+                    'message' => 'Invalid request method.'
+                ], 405);
+                return;
+            }
+
+            $faqId = (int)$id;
+            if ($faqId <= 0) {
+                $this->json([
+                    'success' => false,
+                    'message' => 'FAQ not found.'
+                ], 404);
+                return;
+            }
+
+            try {
+                $existing = $this->faqModel->find($faqId);
+            } catch (Throwable $throwable) {
+                error_log('Failed to load FAQ for delete: ' . $throwable->getMessage());
+                $this->json([
+                    'success' => false,
+                    'message' => 'Unable to load the FAQ. Please try again.'
+                ], 500);
+                return;
+            }
+            if (!$existing) {
+                $this->json([
+                    'success' => false,
+                    'message' => 'FAQ not found.'
+                ], 404);
+                return;
+            }
+
+            try {
+                $this->faqModel->delete($faqId);
+            } catch (Exception $exception) {
+                error_log('Failed to delete FAQ: ' . $exception->getMessage());
+                $this->json([
+                    'success' => false,
+                    'message' => 'Unable to delete the FAQ. Please try again.'
+                ], 500);
+                return;
+            }
+
+            $faqs = $this->getFormattedFaqs();
+            $stats = $this->buildFaqStats($faqs);
+
+            $this->json([
+                'success' => true,
+                'message' => 'FAQ removed.',
+                'faqs' => $faqs,
+                'stats' => $stats
+            ]);
+        }
+
+        public function toggleFaq($id) {
+            $this->userModel->requireAuth();
+
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                $this->json([
+                    'success' => false,
+                    'message' => 'Invalid request method.'
+                ], 405);
+                return;
+            }
+
+            $faqId = (int)$id;
+            if ($faqId <= 0) {
+                $this->json([
+                    'success' => false,
+                    'message' => 'FAQ not found.'
+                ], 404);
+                return;
+            }
+
+            try {
+                $existing = $this->faqModel->find($faqId);
+            } catch (Throwable $throwable) {
+                error_log('Failed to load FAQ for toggle: ' . $throwable->getMessage());
+                $this->json([
+                    'success' => false,
+                    'message' => 'Unable to load the FAQ. Please try again.'
+                ], 500);
+                return;
+            }
+            if (!$existing) {
+                $this->json([
+                    'success' => false,
+                    'message' => 'FAQ not found.'
+                ], 404);
+                return;
+            }
+
+            $visible = isset($_POST['visible']) ? (int)$_POST['visible'] === 1 : true;
+
+            try {
+                $this->faqModel->toggleVisibility($faqId, $visible);
+            } catch (Exception $exception) {
+                error_log('Failed to toggle FAQ visibility: ' . $exception->getMessage());
+                $this->json([
+                    'success' => false,
+                    'message' => 'Unable to update FAQ visibility. Please try again.'
+                ], 500);
+                return;
+            }
+
+            $faqs = $this->getFormattedFaqs();
+            $stats = $this->buildFaqStats($faqs);
+            $updated = null;
+
+            foreach ($faqs as $faq) {
+                if ($faq['id'] === $faqId) {
+                    $updated = $faq;
+                    break;
+                }
+            }
+
+            $this->json([
+                'success' => true,
+                'message' => $visible ? 'FAQ is now visible.' : 'FAQ hidden from the Services page.',
+                'faq' => $updated,
+                'faqs' => $faqs,
+                'stats' => $stats
+            ]);
+        }
+
+        public function reorderFaqs() {
+            $this->userModel->requireAuth();
+
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                $this->json([
+                    'success' => false,
+                    'message' => 'Invalid request method.'
+                ], 405);
+                return;
+            }
+
+            $orderPayload = $_POST['order'] ?? '[]';
+            $orderedIds = json_decode($orderPayload, true);
+
+            if (!is_array($orderedIds) || empty($orderedIds)) {
+                $this->json([
+                    'success' => false,
+                    'message' => 'Provide the new FAQ order.'
+                ], 422);
+                return;
+            }
+
+            $orderedIds = array_map('intval', $orderedIds);
+            $orderedIds = array_filter($orderedIds, static fn ($value) => $value > 0);
+
+            if (empty($orderedIds)) {
+                $this->json([
+                    'success' => false,
+                    'message' => 'Provide the new FAQ order.'
+                ], 422);
+                return;
+            }
+
+            try {
+                $this->faqModel->reorder(array_values($orderedIds));
+            } catch (Exception $exception) {
+                error_log('Failed to reorder FAQs: ' . $exception->getMessage());
+                $this->json([
+                    'success' => false,
+                    'message' => 'Unable to save the new FAQ order.'
+                ], 500);
+                return;
+            }
+
+            $faqs = $this->getFormattedFaqs();
+            $stats = $this->buildFaqStats($faqs);
+
+            $this->json([
+                'success' => true,
+                'message' => 'FAQ order updated.',
+                'faqs' => $faqs,
+                'stats' => $stats
+            ]);
+        }
     private function getFormattedPricingPlans(): array {
         $records = $this->pricingPlanModel->allForManager();
         return array_map([$this, 'formatPricingPlanForManager'], $records);
@@ -4918,6 +5313,85 @@ class AdminManagerController extends BaseController {
         } catch (Throwable $throwable) {
             error_log('Failed to transfer pricing plan highlight: ' . $throwable->getMessage());
         }
+    }
+
+    private function getFormattedFaqs(): array {
+        try {
+            $records = $this->faqModel->allForManager();
+        } catch (Throwable $throwable) {
+            error_log('Failed to load FAQs: ' . $throwable->getMessage());
+            return [];
+        }
+
+        return array_map([$this, 'formatFaqForManager'], $records);
+    }
+
+    private function formatFaqForManager(array $faq): array {
+        $question = trim((string)($faq['question'] ?? ''));
+        $answer = trim((string)($faq['answer'] ?? ''));
+
+        $excerpt = strip_tags($answer);
+        if (mb_strlen($excerpt) > 140) {
+            $excerpt = mb_substr($excerpt, 0, 140) . '…';
+        }
+
+        return [
+            'id' => (int)($faq['id'] ?? 0),
+            'question' => $question,
+            'answer' => $answer,
+            'answer_excerpt' => $excerpt,
+            'sort_order' => (int)($faq['sort_order'] ?? 0),
+            'visible' => !empty($faq['visible']) ? 1 : 0,
+            'created_at' => $faq['created_at'] ?? null,
+            'updated_at' => $faq['updated_at'] ?? null
+        ];
+    }
+
+    private function buildFaqStats(array $faqs): array {
+        $total = count($faqs);
+        $visible = 0;
+
+        foreach ($faqs as $faq) {
+            if (!empty($faq['visible'])) {
+                $visible++;
+            }
+        }
+
+        return [
+            'total' => $total,
+            'visible' => $visible,
+            'hidden' => max(0, $total - $visible)
+        ];
+    }
+
+    private function sanitizeFaqInput(array $source, array $existing = []): array {
+        $question = trim((string)($source['question'] ?? ($existing['question'] ?? '')));
+        $question = mb_substr($question, 0, 255);
+
+        $answer = trim((string)($source['answer'] ?? ($existing['answer'] ?? '')));
+
+        $visibleRaw = $source['visible'] ?? ($existing['visible'] ?? 1);
+        $visible = $this->normalizeBooleanInput($visibleRaw, true);
+
+        return [
+            'question' => $question,
+            'answer' => $answer,
+            'visible' => $visible
+        ];
+    }
+
+    private function validateFaqInput(array $input): array {
+        $errors = [];
+
+        if (mb_strlen($input['question']) < 5) {
+            $errors[] = 'Question must be at least 5 characters.';
+        }
+
+        if (mb_strlen(strip_tags($input['answer'])) < 5) {
+            $errors[] = 'Answer must be at least 5 characters.';
+        }
+
+        return $errors;
     }
     
     // UTILITY METHODS

@@ -11,6 +11,7 @@
         initializeServicesManager();
         initializeServiceFeaturesManager();
         initializeServiceProcessManager();
+    initializeFaqManager();
         initializePricingPlanManager();
         initializeServicesPreviewManager();
         initializeSkillsPreviewManager();
@@ -5134,6 +5135,870 @@ function initializeServiceProcessManager() {
             return text || '';
         }
         return text.slice(0, limit - 1) + '…';
+    }
+}
+
+function initializeFaqManager() {
+    const container = document.querySelector('[data-faq-manager]');
+    if (!container) {
+        return;
+    }
+
+    const list = container.querySelector('[data-faq-list]');
+    const emptyState = container.querySelector('[data-faq-empty]');
+    const previewContainer = container.querySelector('[data-faq-preview]');
+    const previewEmpty = container.querySelector('[data-faq-preview-empty]');
+    const feedback = container.querySelector('[data-faq-feedback]');
+    const statNodes = container.querySelectorAll('[data-faq-stat]');
+    const addButton = container.querySelector('[data-faq-add]');
+    const refreshButton = container.querySelector('[data-faq-refresh]');
+    const modalElement = document.getElementById('faqModal');
+
+    if (!list || !previewContainer || !modalElement) {
+        return;
+    }
+
+    const modalForm = modalElement.querySelector('[data-faq-form]');
+    const modalTitle = modalElement.querySelector('[data-faq-modal-title]');
+    const modalError = modalElement.querySelector('[data-faq-modal-error]');
+    const modalSubmit = modalElement.querySelector('[data-faq-modal-submit]');
+    const modalCancelButtons = modalElement.querySelectorAll('[data-faq-modal-cancel]');
+
+    const fieldMap = {
+        question: modalElement.querySelector('[data-faq-field="question"]'),
+        answer: modalElement.querySelector('[data-faq-field="answer"]'),
+        visible: modalElement.querySelector('[data-faq-field="visible"]')
+    };
+
+    const listTemplate = document.getElementById('faqListItemTemplate');
+    const previewTemplate = document.getElementById('faqPreviewTemplate');
+
+    if (!modalForm || !fieldMap.question || !fieldMap.answer || !listTemplate || !listTemplate.content || !previewTemplate || !previewTemplate.content) {
+        return;
+    }
+
+    const listTemplateContent = listTemplate.content.firstElementChild;
+    const previewTemplateContent = previewTemplate.content.firstElementChild;
+
+    if (!listTemplateContent || !previewTemplateContent) {
+        return;
+    }
+
+    previewContainer.classList.add('accordion');
+
+    const routes = parseRoutes(container.dataset.faqRoutes || '{}');
+
+    const modalInstance = typeof bootstrap !== 'undefined' && bootstrap.Modal
+        ? new bootstrap.Modal(modalElement)
+        : null;
+
+    const state = {
+        faqs: normalizeFaqs(parseFaqs(container.dataset.faqInitial || '[]')),
+        stats: null,
+        editingId: null,
+        isSubmitting: false,
+        reorderTimer: null,
+        reorderController: null,
+        messageTimer: null
+    };
+
+    state.stats = computeStats(state.faqs);
+    renderAll();
+
+    if (addButton) {
+        addButton.addEventListener('click', function () {
+            openCreateModal();
+        });
+    }
+
+    if (refreshButton) {
+        refreshButton.addEventListener('click', function () {
+            refreshFaqs();
+        });
+    }
+
+    modalCancelButtons.forEach(function (button) {
+        button.addEventListener('click', function (event) {
+            event.preventDefault();
+            closeModal();
+        });
+    });
+
+    modalElement.addEventListener('hidden.bs.modal', function () {
+        resetModal();
+    });
+
+    if (!modalInstance) {
+        modalElement.addEventListener('transitionend', function () {
+            if (!modalElement.classList.contains('show')) {
+                resetModal();
+            }
+        });
+    }
+
+    modalForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        handleModalSubmit();
+    });
+
+    list.addEventListener('click', function (event) {
+        const editButton = event.target.closest('[data-faq-edit]');
+        if (editButton) {
+            const item = editButton.closest('[data-faq-item]');
+            if (item) {
+                const faqId = Number(item.dataset.faqId || '0');
+                if (faqId) {
+                    openEditModal(faqId);
+                }
+            }
+            return;
+        }
+
+        const deleteButton = event.target.closest('[data-faq-delete]');
+        if (deleteButton) {
+            const item = deleteButton.closest('[data-faq-item]');
+            if (item) {
+                const faqId = Number(item.dataset.faqId || '0');
+                if (faqId) {
+                    deleteFaq(faqId, deleteButton);
+                }
+            }
+        }
+    });
+
+    list.addEventListener('change', function (event) {
+        const toggle = event.target.closest('[data-faq-visible-toggle]');
+        if (toggle) {
+            const item = toggle.closest('[data-faq-item]');
+            if (item) {
+                const faqId = Number(item.dataset.faqId || '0');
+                if (faqId) {
+                    toggleFaqVisibility(faqId, toggle);
+                }
+            }
+        }
+    });
+
+    list.addEventListener('sortable:reordered', function () {
+        const order = getCurrentOrder();
+        applyOrderToState(order);
+        renderPreview();
+        scheduleReorder(order);
+    });
+
+    function parseRoutes(raw) {
+        if (!raw) {
+            return {};
+        }
+        try {
+            const parsed = JSON.parse(raw);
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch (error) {
+            console.warn('Failed to parse FAQ routes', error);
+            return {};
+        }
+    }
+
+    function parseFaqs(raw) {
+        if (!raw) {
+            return [];
+        }
+        try {
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+            console.warn('Failed to parse FAQ payload', error);
+            return [];
+        }
+    }
+
+    function normalizeFaqs(faqs) {
+        return faqs
+            .map(normalizeFaq)
+            .filter(Boolean)
+            .sort(function (a, b) {
+                return a.sort_order - b.sort_order;
+            })
+            .map(function (faq, index) {
+                faq.sort_order = index;
+                return faq;
+            });
+    }
+
+    function normalizeFaq(faq) {
+        if (!faq) {
+            return null;
+        }
+
+        const id = Number(faq.id || faq.faq_id || 0);
+        const sortOrder = Number(faq.sort_order || 0);
+        const question = String(faq.question || '').trim();
+        const answer = String(faq.answer || '').trim();
+        const visible = Number(faq.visible || 0) === 1 ? 1 : 0;
+        const excerpt = typeof faq.answer_excerpt === 'string' && faq.answer_excerpt.trim() !== ''
+            ? faq.answer_excerpt.trim()
+            : buildAnswerExcerpt(answer);
+
+        return {
+            id: id,
+            question: question,
+            answer: answer,
+            answer_excerpt: excerpt,
+            sort_order: Number.isFinite(sortOrder) ? sortOrder : 0,
+            visible: visible,
+            updated_at: faq.updated_at || null
+        };
+    }
+
+    function buildAnswerExcerpt(answer) {
+        const plain = answer.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+        if (plain.length <= 140) {
+            return plain;
+        }
+        return plain.slice(0, 139) + '…';
+    }
+
+    function computeStats(faqs) {
+        const stats = {
+            total: faqs.length,
+            visible: 0,
+            hidden: 0
+        };
+
+        faqs.forEach(function (faq) {
+            if (faq.visible) {
+                stats.visible += 1;
+            } else {
+                stats.hidden += 1;
+            }
+        });
+
+        return stats;
+    }
+
+    function renderAll() {
+        renderList();
+        renderPreview();
+        updateStatsView(state.stats || computeStats(state.faqs));
+        updateEmptyStates();
+    }
+
+    function renderList() {
+        list.innerHTML = '';
+
+        if (!state.faqs.length) {
+            return;
+        }
+
+        state.faqs.forEach(function (faq) {
+            const item = listTemplateContent.cloneNode(true);
+            item.dataset.faqId = String(faq.id);
+            item.dataset.sortableId = String(faq.id);
+
+            const questionNode = item.querySelector('[data-faq-question]');
+            const answerPreviewNode = item.querySelector('[data-faq-answer-preview]');
+            const hiddenBadge = item.querySelector('[data-faq-hidden-badge]');
+            const toggle = item.querySelector('[data-faq-visible-toggle]');
+
+            if (questionNode) {
+                questionNode.textContent = faq.question || 'Untitled question';
+            }
+
+            if (answerPreviewNode) {
+                answerPreviewNode.textContent = faq.answer_excerpt || 'Answer preview unavailable.';
+            }
+
+            if (hiddenBadge) {
+                hiddenBadge.classList.toggle('d-none', faq.visible === 1);
+            }
+
+            if (toggle) {
+                toggle.checked = faq.visible === 1;
+            }
+
+            list.appendChild(item);
+        });
+    }
+
+    function renderPreview() {
+        previewContainer.innerHTML = '';
+
+        const visibleFaqs = state.faqs.filter(function (faq) {
+            return faq.visible === 1;
+        });
+
+        if (!visibleFaqs.length) {
+            if (previewEmpty) {
+                previewEmpty.classList.remove('d-none');
+            }
+            previewContainer.classList.add('d-none');
+            return;
+        }
+
+        previewContainer.classList.remove('d-none');
+        if (previewEmpty) {
+            previewEmpty.classList.add('d-none');
+        }
+
+        visibleFaqs.forEach(function (faq, index) {
+            const fragment = previewTemplateContent.cloneNode(true);
+            const questionNode = fragment.querySelector('[data-faq-preview-question]');
+            const answerNode = fragment.querySelector('[data-faq-preview-answer]');
+            const collapse = fragment.querySelector('.accordion-collapse');
+
+            if (questionNode) {
+                questionNode.textContent = faq.question || 'Untitled question';
+            }
+
+            if (answerNode) {
+                answerNode.innerHTML = faq.answer ? textToHtml(faq.answer) : '<span class="text-muted">Add an answer to display here.</span>';
+            }
+
+            if (collapse) {
+                if (index === 0) {
+                    collapse.classList.add('show');
+                } else {
+                    collapse.classList.remove('show');
+                }
+            }
+
+            previewContainer.appendChild(fragment);
+        });
+    }
+
+    function updateStatsView(stats) {
+        state.stats = stats;
+        statNodes.forEach(function (node) {
+            const key = node.dataset.faqStat;
+            if (!key || !(key in stats)) {
+                return;
+            }
+            node.textContent = String(stats[key]);
+        });
+    }
+
+    function updateEmptyStates() {
+        const hasFaqs = state.faqs.length > 0;
+        if (emptyState) {
+            emptyState.classList.toggle('d-none', hasFaqs);
+        }
+    }
+
+    function openCreateModal() {
+        state.editingId = null;
+        if (modalTitle) {
+            modalTitle.textContent = 'Add FAQ';
+        }
+        if (modalSubmit) {
+            modalSubmit.textContent = 'Save FAQ';
+        }
+        resetModalFields({
+            question: '',
+            answer: '',
+            visible: true
+        });
+        hideModalError();
+        openModal();
+    }
+
+    function openEditModal(id) {
+        const faq = state.faqs.find(function (item) {
+            return item.id === id;
+        });
+
+        if (!faq) {
+            setFeedback('Unable to load that FAQ. Please refresh.', 'danger');
+            return;
+        }
+
+        state.editingId = id;
+        if (modalTitle) {
+            modalTitle.textContent = 'Edit FAQ';
+        }
+        if (modalSubmit) {
+            modalSubmit.textContent = 'Update FAQ';
+        }
+        resetModalFields({
+            question: faq.question,
+            answer: faq.answer,
+            visible: faq.visible === 1
+        });
+        hideModalError();
+        openModal();
+    }
+
+    function openModal() {
+        if (modalInstance) {
+            modalInstance.show();
+        } else {
+            modalElement.classList.add('show');
+            modalElement.style.display = 'block';
+            modalElement.removeAttribute('aria-hidden');
+        }
+    }
+
+    function closeModal() {
+        if (modalInstance) {
+            modalInstance.hide();
+        } else {
+            modalElement.classList.remove('show');
+            modalElement.style.display = 'none';
+            modalElement.setAttribute('aria-hidden', 'true');
+            resetModal();
+        }
+    }
+
+    function resetModal() {
+        state.editingId = null;
+        hideModalError();
+        if (modalForm) {
+            modalForm.reset();
+        }
+    }
+
+    function resetModalFields(values) {
+        if (fieldMap.question) {
+            fieldMap.question.value = values.question || '';
+        }
+        if (fieldMap.answer) {
+            fieldMap.answer.value = values.answer || '';
+        }
+        if (fieldMap.visible) {
+            fieldMap.visible.checked = values.visible !== false;
+        }
+    }
+
+    function showModalError(message) {
+        if (!modalError) {
+            return;
+        }
+        modalError.textContent = message || 'Something went wrong.';
+        modalError.classList.remove('d-none');
+    }
+
+    function hideModalError() {
+        if (!modalError) {
+            return;
+        }
+        modalError.textContent = '';
+        modalError.classList.add('d-none');
+    }
+
+    function collectModalValues() {
+        const values = {
+            question: fieldMap.question ? fieldMap.question.value.trim() : '',
+            answer: fieldMap.answer ? fieldMap.answer.value.trim() : '',
+            visible: fieldMap.visible ? fieldMap.visible.checked : true
+        };
+
+        const errors = [];
+        if (values.question.length < 5) {
+            errors.push('Question must be at least 5 characters long.');
+        }
+        if (values.answer.length < 5) {
+            errors.push('Answer must be at least 5 characters long.');
+        }
+
+        return { values: values, errors: errors };
+    }
+
+    function buildFormData(values) {
+        const formData = new FormData();
+        formData.append('question', values.question);
+        formData.append('answer', values.answer);
+        formData.append('visible', values.visible ? '1' : '0');
+        return formData;
+    }
+
+    function handleModalSubmit() {
+        if (state.isSubmitting) {
+            return;
+        }
+
+        const payload = collectModalValues();
+        if (payload.errors.length) {
+            showModalError(payload.errors.join(' '));
+            return;
+        }
+        hideModalError();
+
+        const isEdit = state.editingId !== null;
+        const endpoint = isEdit
+            ? buildRoute(routes.update_template, state.editingId)
+            : routes.store;
+
+        if (!endpoint) {
+            showModalError('Missing endpoint configuration.');
+            return;
+        }
+
+        state.isSubmitting = true;
+        setButtonLoading(modalSubmit, true);
+
+        fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: buildFormData(payload.values),
+            credentials: 'same-origin'
+        })
+            .then(parseManagerResponse)
+            .then(function (response) {
+                if (!response.ok || !response.data || response.data.success === false) {
+                    const message = response.data && response.data.message ? response.data.message : 'Unable to save the FAQ.';
+                    const errors = extractErrors(response.data);
+                    if (errors.length) {
+                        showModalError(errors.join(' '));
+                    } else {
+                        showModalError(message);
+                    }
+                    throw new Error(message);
+                }
+
+                applyServerState(response.data.faqs, response.data.stats);
+                closeModal();
+                setFeedback(response.data.message || 'FAQ saved.', 'success');
+            })
+            .catch(function (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+                showModalError(error && error.message ? error.message : 'Failed to save the FAQ.');
+            })
+            .finally(function () {
+                state.isSubmitting = false;
+                setButtonLoading(modalSubmit, false);
+            });
+    }
+
+    function refreshFaqs() {
+        if (!routes.fetch) {
+            setFeedback('Refresh route is not configured.', 'danger');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('_', Date.now().toString());
+
+        fetch(routes.fetch, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: formData,
+            credentials: 'same-origin'
+        })
+            .then(parseManagerResponse)
+            .then(function (response) {
+                if (!response.ok || !response.data || response.data.success === false) {
+                    const message = response.data && response.data.message ? response.data.message : 'Failed to refresh FAQs.';
+                    throw new Error(message);
+                }
+
+                applyServerState(response.data.faqs, response.data.stats);
+                setFeedback(response.data.message || 'FAQs refreshed.', 'success');
+            })
+            .catch(function (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+                setFeedback(error && error.message ? error.message : 'Unable to refresh FAQs.', 'danger');
+            });
+    }
+
+    function deleteFaq(id, button) {
+        const endpoint = buildRoute(routes.delete_template, id);
+        if (!endpoint) {
+            setFeedback('Delete route is not configured.', 'danger');
+            return;
+        }
+
+        if (!window.confirm('Delete this FAQ? This action cannot be undone.')) {
+            return;
+        }
+
+        setButtonLoading(button, true);
+
+        fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin'
+        })
+            .then(parseManagerResponse)
+            .then(function (response) {
+                if (!response.ok || !response.data || response.data.success === false) {
+                    const message = response.data && response.data.message ? response.data.message : 'Failed to delete the FAQ.';
+                    throw new Error(message);
+                }
+
+                applyServerState(response.data.faqs, response.data.stats);
+                setFeedback(response.data.message || 'FAQ removed.', 'success');
+            })
+            .catch(function (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+                setFeedback(error && error.message ? error.message : 'Unable to delete the FAQ.', 'danger');
+            })
+            .finally(function () {
+                setButtonLoading(button, false);
+            });
+    }
+
+    function toggleFaqVisibility(id, toggle) {
+        const endpoint = buildRoute(routes.toggle_template, id);
+        if (!endpoint) {
+            setFeedback('Toggle route is not configured.', 'danger');
+            toggle.checked = !toggle.checked;
+            return;
+        }
+
+        const visible = toggle.checked;
+        toggle.disabled = true;
+
+        const formData = new FormData();
+        formData.append('visible', visible ? '1' : '0');
+
+        fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: formData,
+            credentials: 'same-origin'
+        })
+            .then(parseManagerResponse)
+            .then(function (response) {
+                if (!response.ok || !response.data || response.data.success === false) {
+                    const message = response.data && response.data.message ? response.data.message : 'Failed to update FAQ visibility.';
+                    throw new Error(message);
+                }
+
+                applyServerState(response.data.faqs, response.data.stats);
+                setFeedback(response.data.message || (visible ? 'FAQ is now visible.' : 'FAQ hidden.'), 'success');
+            })
+            .catch(function (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+                toggle.checked = !visible;
+                setFeedback(error && error.message ? error.message : 'Unable to update FAQ visibility.', 'danger');
+            })
+            .finally(function () {
+                toggle.disabled = false;
+            });
+    }
+
+    function getCurrentOrder() {
+        return Array.from(list.querySelectorAll('[data-faq-item]')).map(function (item) {
+            return Number(item.dataset.faqId || '0');
+        }).filter(function (id) {
+            return id > 0;
+        });
+    }
+
+    function applyOrderToState(order) {
+        if (!order.length) {
+            return;
+        }
+
+        const orderMap = new Map();
+        order.forEach(function (id, index) {
+            orderMap.set(id, index);
+        });
+
+        state.faqs.sort(function (a, b) {
+            const orderA = orderMap.has(a.id) ? orderMap.get(a.id) : a.sort_order;
+            const orderB = orderMap.has(b.id) ? orderMap.get(b.id) : b.sort_order;
+            if (orderA === orderB) {
+                return a.id - b.id;
+            }
+            return orderA - orderB;
+        });
+
+        state.faqs.forEach(function (faq, index) {
+            faq.sort_order = index;
+        });
+
+        state.stats = computeStats(state.faqs);
+        updateStatsView(state.stats);
+        updateEmptyStates();
+    }
+
+    function scheduleReorder(order) {
+        if (!routes.reorder || !order.length) {
+            return;
+        }
+
+        if (state.reorderTimer) {
+            clearTimeout(state.reorderTimer);
+        }
+
+        if (state.reorderController) {
+            state.reorderController.abort();
+        }
+
+        state.reorderTimer = setTimeout(function () {
+            performReorder(order);
+        }, 600);
+    }
+
+    function performReorder(order) {
+        const endpoint = routes.reorder;
+        if (!endpoint) {
+            return;
+        }
+
+        const controller = new AbortController();
+        state.reorderController = controller;
+
+        const formData = new FormData();
+        formData.append('order', JSON.stringify(order));
+
+        fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: formData,
+            credentials: 'same-origin',
+            signal: controller.signal
+        })
+            .then(parseManagerResponse)
+            .then(function (response) {
+                if (!response.ok || !response.data || response.data.success === false) {
+                    const message = response.data && response.data.message ? response.data.message : 'Failed to reorder FAQs.';
+                    throw new Error(message);
+                }
+
+                applyServerState(response.data.faqs, response.data.stats);
+                setFeedback(response.data.message || 'FAQ order updated.', 'success');
+            })
+            .catch(function (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+                setFeedback(error && error.message ? error.message : 'Unable to reorder FAQs.', 'danger');
+            })
+            .finally(function () {
+                if (state.reorderController === controller) {
+                    state.reorderController = null;
+                }
+                state.reorderTimer = null;
+            });
+    }
+
+    function buildRoute(template, id) {
+        if (!template) {
+            return null;
+        }
+        return template.replace('__ID__', String(id));
+    }
+
+    function parseManagerResponse(response) {
+        const contentType = response.headers.get('content-type') || '';
+        const isJson = contentType.includes('application/json');
+        if (!isJson) {
+            return Promise.reject(new Error('Unexpected response format from the server.'));
+        }
+
+        return response.json().then(function (data) {
+            return { ok: response.ok, status: response.status, data: data };
+        });
+    }
+
+    function extractErrors(data) {
+        if (!data || !data.errors) {
+            return [];
+        }
+
+        if (Array.isArray(data.errors)) {
+            return data.errors.map(function (message) {
+                return String(message || '');
+            }).filter(function (message) {
+                return message.trim().length > 0;
+            });
+        }
+
+        if (typeof data.errors === 'object') {
+            return Object.keys(data.errors).map(function (key) {
+                const value = data.errors[key];
+                if (Array.isArray(value)) {
+                    return value.join(' ');
+                }
+                return String(value || '');
+            }).filter(function (message) {
+                return message.trim().length > 0;
+            });
+        }
+
+        return [];
+    }
+
+    function applyServerState(faqs, stats) {
+        if (Array.isArray(faqs)) {
+            state.faqs = normalizeFaqs(faqs);
+        }
+
+        if (stats && typeof stats === 'object') {
+            state.stats = stats;
+        } else {
+            state.stats = computeStats(state.faqs);
+        }
+
+        syncDataset();
+        renderAll();
+    }
+
+    function syncDataset() {
+        try {
+            container.dataset.faqInitial = JSON.stringify(state.faqs);
+        } catch (error) {
+            console.warn('Failed to sync FAQ dataset', error);
+        }
+    }
+
+    function setFeedback(message, tone) {
+        if (!feedback) {
+            return;
+        }
+
+        feedback.textContent = message || '';
+        feedback.classList.remove('d-none', 'text-success', 'text-danger', 'text-muted');
+
+        if (!message) {
+            feedback.classList.add('d-none');
+        } else {
+            switch (tone) {
+                case 'success':
+                    feedback.classList.add('text-success');
+                    break;
+                case 'danger':
+                    feedback.classList.add('text-danger');
+                    break;
+                default:
+                    feedback.classList.add('text-muted');
+            }
+        }
+
+        if (state.messageTimer) {
+            clearTimeout(state.messageTimer);
+        }
+
+        if (message) {
+            state.messageTimer = setTimeout(function () {
+                feedback.classList.add('d-none');
+                feedback.textContent = '';
+            }, 4000);
+        }
     }
 }
 
