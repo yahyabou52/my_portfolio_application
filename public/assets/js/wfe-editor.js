@@ -51,10 +51,45 @@ async function flush(){
  })();await inFlight;if(pending.size)return flush();
 }
 window.wfeEditor={flush,action:async(action,body)=>{for(let attempt=0;;attempt++){try{const result=await request(action,body);revision=result.revision;return result;}catch(e){if(e.status!==429||attempt>=3)throw e;await new Promise(resolve=>setTimeout(resolve,650));}}}};
+
+let refreshing=null;
+async function refreshCanvas(){
+ if(refreshing)return refreshing;
+ refreshing=(async()=>{
+  const main=document.querySelector('main'),scroll={x:scrollX,y:scrollY};main.inert=true;
+  try{
+   await flush();
+   const response=await fetch(location.href,{cache:'no-store'});
+   if(!response.ok)throw new Error('Your change was saved, but the preview could not update. Try refreshing the preview.');
+   const doc=new DOMParser().parseFromString(await response.text(),'text/html'),boot=doc.getElementById('wfe-config');
+   if(!boot||!doc.querySelector('main'))throw new Error('Your session expired. Sign in again to continue.');
+   const next=JSON.parse(boot.textContent);
+   revision=next.revision;values={...next.values};Object.assign(config,next);
+   main.replaceChildren(...doc.querySelector('main').childNodes);
+   const theme=doc.getElementById('site-theme');
+   if(theme)document.getElementById('site-theme')?.replaceWith(theme);
+   for(const [id,value] of Object.entries(values))updateDOM(id,value,true);
+   bindFields();window.wfeCollections?.bind();
+   if(window.AOS)window.AOS.refreshHard();
+   if(window.initSkillBars)window.initSkillBars();
+   publication.textContent=next.published?'Published':'Unpublished page changes';
+   setStatus(next.published?'Published':'Saved draft');
+   refreshButton.hidden=true;
+   document.dispatchEvent(new CustomEvent('wfe:refreshed',{detail:next}));
+   window.scrollTo(scroll.x,scroll.y);
+  }catch(e){refreshButton.hidden=false;setStatus(e.message,true);throw e;}
+  finally{main.inert=false;}
+ })();
+ try{return await refreshing;}finally{refreshing=null;}
+}
+window.wfeEditor.refresh=refreshCanvas;
+const refreshButton=document.createElement('button');refreshButton.type='button';refreshButton.textContent='Retry preview';refreshButton.hidden=true;retry.after(refreshButton);refreshButton.onclick=()=>refreshCanvas().catch(()=>{});
 retry.addEventListener('click',()=>{retries=0;flush().catch(()=>{});});
-reload.addEventListener('click',()=>{if(confirm('Reload the latest saved draft? Unsaved local edits will be lost.')){pending.clear();location.reload();}});
+reload.addEventListener('click',async()=>{if(confirm('Load the latest saved draft? Unsaved local edits will be lost.')){pending.clear();paused=false;undo.length=0;redo.length=0;buttons();try{await refreshCanvas();reload.hidden=true;retry.hidden=true;}catch(e){setStatus(e.message,true);}}});
 window.addEventListener('beforeunload',event=>{if(pending.size||inFlight){event.preventDefault();event.returnValue='';}});
-for(const node of schemaNodes()){
+const boundFields=new WeakSet();
+function bindFields(){for(const node of schemaNodes()){
+ if(boundFields.has(node))continue;boundFields.add(node);
  if(node.closest('[data-collection-item]'))continue;
  const kind=node.dataset.editKind;
  node.setAttribute('tabindex','0');
@@ -70,6 +105,8 @@ for(const node of schemaNodes()){
   node.addEventListener('click',activate);node.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){activate(event);}});
  }
 }
+}
+bindFields();
 document.getElementById('wfe-undo').addEventListener('click',()=>{const edit=undo.pop();if(edit){redo.push(edit);change(edit.id,edit.previous,false);buttons();}});
 document.getElementById('wfe-redo').addEventListener('click',()=>{const edit=redo.pop();if(edit){undo.push(edit);change(edit.id,edit.value,false);buttons();}});
 document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='z'&&!event.target.closest('.wfe-dialog')){event.preventDefault();document.getElementById(event.shiftKey?'wfe-redo':'wfe-undo').click();}});
@@ -78,7 +115,7 @@ document.getElementById('wfe-publish').addEventListener('click',async event=>{
 });
 document.getElementById('wfe-discard').addEventListener('click',async()=>{
  if(!confirm('Discard all unpublished page changes and restore the published website?'))return;
- clearTimeout(timer);try{if(inFlight)await inFlight;const result=await request('discard',{});revision=result.revision;pending.clear();location.reload();}catch(error){setStatus(error.message,true);}
+ clearTimeout(timer);try{if(inFlight)await inFlight;const result=await request('discard',{});revision=result.revision;pending.clear();undo.length=0;redo.length=0;buttons();await refreshCanvas();}catch(error){setStatus(error.message,true);}
 });
 const toggle=document.getElementById('wfe-toggle'),actions=document.getElementById('wfe-actions');
 if(matchMedia('(max-width:600px)').matches){actions.hidden=true;toggle.setAttribute('aria-expanded','false');}

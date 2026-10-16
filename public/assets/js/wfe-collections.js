@@ -6,17 +6,21 @@ const error=document.getElementById('wfe-item-error'),fields=document.getElement
 async function load(next=type){type=next;select.value=type;const response=await fetch(c.api+'collection-list?type='+encodeURIComponent(type));const data=await response.json();if(!response.ok)throw new Error(data.error);items=data.items;schema=data.schema;const list=document.getElementById('wfe-items-list');list.replaceChildren();if(!items.length){const p=document.createElement('p');p.textContent='Add your first '+(type==='experience'?'experience item':type.replace(/s$/,''))+'.';list.append(p);}for(const row of items){const button=document.createElement('button');button.type='button';button.className='wfe-item-row';button.textContent=(row.title||row.name||row.client_name)+' — '+(row.status==='published'?'Published':'Draft');button.onclick=()=>open(row);list.append(button);}}
 function showError(e){document.getElementById('wfe-items-error').textContent=e.message;}
 async function show(next='projects',id=null){try{await load(next);if(id){const row=items.find(i=>Number(i.id)===Number(id));if(!row)throw new Error('Item not found.');open(row);}else listDialog.showModal();}catch(e){showError(e);}}
-window.wfeCollections={show};
+window.wfeCollections={show,bind:bindItems};
 document.querySelectorAll('[data-message-action]').forEach(button=>button.onclick=async()=>{
  if(button.dataset.messageAction==='delete'&&!confirm('Delete this message?'))return;
  try{const response=await fetch(c.api+'message',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':c.csrf},body:JSON.stringify({id:button.dataset.messageId,operation:button.dataset.messageAction})});const result=await response.json();if(!response.ok)throw new Error(result.error);location.reload();}catch(e){alert(e.message);}
 });
 document.querySelectorAll('[data-manage-collection]').forEach(button=>button.onclick=e=>{e.preventDefault();show(button.dataset.manageCollection);});
-document.querySelectorAll('[data-collection-item]').forEach(node=>{
+const boundItems=new WeakSet();
+function bindItems(){document.querySelectorAll('[data-collection-item]').forEach(node=>{
+if(boundItems.has(node))return;boundItems.add(node);
 node.tabIndex=0;node.setAttribute('aria-label','Edit '+node.dataset.collectionType+' item');
 node.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();show(node.dataset.collectionType,node.dataset.collectionItem);});
 node.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();show(node.dataset.collectionType,node.dataset.collectionItem);}});
 });
+}
+bindItems();
 select.onchange=()=>load(select.value).catch(showError);
 document.getElementById('wfe-new-item').onclick=()=>open(null);
 function open(row){
@@ -45,8 +49,8 @@ try{
  const data=Object.fromEntries(new FormData(document.getElementById('wfe-item-form')));
  const response=await fetch(c.api+'collection-save',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':c.csrf},body:JSON.stringify({type,id:item?.id||0,version:item?._version||'',status,operation,fields:data})});
  const result=await response.json();if(!response.ok)throw new Error(result.error);
- itemDialog.close();await load();
- const notice=document.getElementById('wfe-items-error');notice.textContent=status==='published'?'Published item saved. Refresh the website to see it.':'Draft saved. This item is hidden from visitors.';
+ itemDialog.close();await load();if(window.wfeEditor)await window.wfeEditor.refresh();
+ const notice=document.getElementById('wfe-items-error');notice.textContent=status==='published'?'Published item saved. Your website is up to date.':'Draft saved. This item is hidden from visitors.';
  if(!listDialog.open)listDialog.showModal();
 }catch(e){error.textContent=e.message;}finally{buttons.forEach(b=>b.disabled=false);}
 }

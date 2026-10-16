@@ -39,7 +39,7 @@ try{
  await page.locator('#wfe-publish').click();await page.locator('#wfe-status').filter({hasText:'Published'}).waitFor();
  await publicPage.reload();assert.equal((await publicPage.locator('.hero-title').innerText()).trim(),'Private inline title');
  await heading.fill('Throw this draft away');await page.locator('#wfe-status').filter({hasText:'Saved draft'}).waitFor();
- page.once('dialog',dialog=>dialog.accept());await Promise.all([page.waitForEvent('load'),page.locator('#wfe-discard').click()]);
+ page.once('dialog',dialog=>dialog.accept());await Promise.all([page.evaluate(()=>new Promise(resolve=>document.addEventListener('wfe:refreshed',()=>resolve(true),{once:true}))),page.locator('#wfe-discard').click()]);
  assert.equal((await page.locator('[data-edit-field="hero.hero_title"]').innerText()).trim(),'Private inline title');
  // Concurrent tab retains an old revision and must receive a visible conflict.
  const other=await context.newPage();await other.goto(base+'/edit',{waitUntil:'networkidle'});

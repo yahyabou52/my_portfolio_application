@@ -10,3 +10,10 @@ Open an owner website and select Edit website. Use Sections to organize the page
 
 ## Verification
 Run npm test with the local database environment configured. The suite includes scripts/test-editor-workspace.mjs for desktop/mobile navigation, drawer tabs, Escape dismissal and dock bounds. Screenshots are written to test-results/workspace. Existing suites cover draft conflicts, publish/discard, collections, authorization, onboarding, section dimensions and public screenshot parity.
+
+## Live canvas updates
+Section visibility, order, add/remove, variants and theme saves now refresh the same server-rendered draft inside the existing page. The editor dock and dialogs remain mounted. Discard and conflict recovery also update in place. Collection saves refresh the canvas automatically when invoked from the editor.
+
+Refreshes reuse the authenticated edit route and current revision, rebind field and collection editing controls, preserve scroll position, and update the published/draft indicator. Failed preview requests expose Retry preview without repeating the write. No public renderer layout or collection publishing policy changes.
+
+Regression tests preserve a window token across structure changes and Discard to prove no navigation occurred, and cover failed preview fetch recovery.

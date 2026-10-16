@@ -23,5 +23,13 @@ try{
   await page.screenshot({path:fileURLToPath(new URL('content-'+width+'.png',out))});
   await page.keyboard.press('Escape');await page.locator('#wfe-appearance').click();await page.locator('#wfe-font').waitFor({state:'visible'});await page.keyboard.press('Escape');
  }
- console.log('PASS: editor navigation, appearance tabs, shared content drawer, mobile dock bounds, Escape dismissal and desktop/mobile screenshots.');
+ await page.evaluate(()=>{window.noReloadToken='kept';});
+ await page.route('**/edit',route=>route.fulfill({status:503,body:'Temporary failure'}));
+ await page.evaluate(()=>window.wfeEditor.refresh().catch(()=>{}));
+ await page.getByRole('button',{name:'Retry preview',exact:true}).waitFor();
+ await page.unroute('**/edit');
+ await Promise.all([page.evaluate(()=>new Promise(resolve=>document.addEventListener('wfe:refreshed',()=>resolve(true),{once:true}))),page.getByRole('button',{name:'Retry preview',exact:true}).click()]);
+ assert.equal(await page.evaluate(()=>window.noReloadToken),'kept');
+ assert.equal(await page.getByRole('button',{name:'Retry preview',exact:true}).isHidden(),true);
+ console.log('PASS: preview failure recovery without navigation, editor navigation, appearance tabs, shared content drawer, mobile dock bounds, Escape dismissal and desktop/mobile screenshots.');
 }finally{await browser.close();}
