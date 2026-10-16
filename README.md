@@ -69,3 +69,7 @@ PHP syntax checks and HTTP integration tests passed locally. Visual browser QA w
 This is a working local SaaS MVP, not a production launch. Billing, custom domains, email verification, password recovery, signup/login abuse protection, storage quotas and a platform operator console are not implemented. Contact messages are stored; email delivery remains disabled. The portfolio template layout is fixed; customers edit content and section order/visibility rather than designing arbitrary layouts.
 
 Before public deployment, configure HTTPS, production error handling, backups and a dedicated database provisioning account. Database names and sessions are customer-isolated, but the runtime uses one server-side database credential. Per-database credentials and asynchronous provisioning are follow-up hardening work. Point the web server document root to public/. Apache rules are included; equivalent Nginx routing is required.
+
+## Website-first builder
+
+Phase 1 adds a shared section renderer, versioned documents and a guarded tenant migration runner. See [Phase 1 workflow and test commands](docs/WEBSITE_FIRST_PHASE1.md). New sites use the new renderer; existing sites retain the legacy dashboard until migration coverage and verification are complete.

@@ -26,6 +26,40 @@ if (!TenantContext::site()) {
     exit;
 }
 
+// Authenticated migration preview does not switch the site's public renderer.
+$previewPath=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH);
+if($_SERVER['REQUEST_METHOD']==='GET' && $previewPath===parse_url(url('admin/builder-preview'),PHP_URL_PATH)) {
+    require_once ROOT_PATH.'/app/controllers/BuilderController.php';
+    try {(new BuilderController())->show((string)($_GET['page']??'home'),true);}
+    catch(Throwable $e){http_response_code(404);echo 'No migrated draft is available for this website.';}
+    exit;
+}
+
+// Website-first sites never enter legacy page-writing controllers.
+if (TenantContext::editorMode() === 'website_first') {
+    require_once ROOT_PATH.'/app/controllers/BuilderController.php';
+    require_once ROOT_PATH.'/app/core/WebsiteContent.php';
+    $requestPath=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH);
+    $sitePath=rtrim(parse_url(BASE_URL,PHP_URL_PATH)?:'', '/');
+    $relative=substr($requestPath,strlen($sitePath))?:'/';
+    if(str_starts_with($relative,'/admin/') && $_SERVER['REQUEST_METHOD']==='POST' && $relative!=='/admin/login') {
+        verify_csrf();
+        try {(new BuilderStore(Database::getInstance()->getConnection(),TenantContext::id()))->authorize(BuilderController::actor());}
+        catch(Throwable $e){http_response_code(403);exit('Only the website owner can make changes.');}
+        http_response_code(409);exit('Legacy editing is disabled for this website. Use the website editor.');
+    }
+    if($_SERVER['REQUEST_METHOD']==='GET') {
+        if(in_array($relative,['/admin','/admin/dashboard','/admin/website','/admin/settings','/admin/theme','/admin/hero','/admin/about','/admin/footer','/admin/navigation','/admin/pages'],true)) {
+            (new User())->requireAuth();header('Location: '.url());exit;
+        }
+        if($relative==='/edit'){(new BuilderController())->show((string)($_GET['page']??'home'),true);exit;}
+        $pageKey=trim($relative,'/');if($pageKey==='')$pageKey='home';
+        if(in_array($pageKey,['home','about','contact','portfolio','services'],true)) {
+            (new BuilderController())->show($pageKey);exit;
+        }
+    }
+}
+
 // Autoload core classes (simple require for this small project)
 require_once ROOT_PATH . '/app/core/Router.php';
 

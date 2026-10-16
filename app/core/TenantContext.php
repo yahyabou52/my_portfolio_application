@@ -16,6 +16,16 @@ final class TenantContext {
         self::$site = $query->fetch() ?: null;
         if (!self::$site) { http_response_code(404); exit('Website not found.'); }
     }
+    public static function editorMode(): string {
+        if(!self::$site)return 'legacy';
+        try {
+            $mode=Database::getInstance()->getConnection()->query('SELECT editor_mode FROM builder_state WHERE id=1')->fetchColumn();
+            return $mode==='website_first'?'website_first':'legacy';
+        } catch(PDOException $e) { if($e->getCode()==='42S02')return 'legacy'; throw $e; }
+    }
+    public static function validSlug(string $slug): bool {
+        return (bool)preg_match('/^[a-z0-9][a-z0-9-]{2,39}$/',$slug) && !in_array($slug,['admin','api','assets','signup','login','logout','account','settings','manage','edit','support','billing','www','privacy','terms','s'],true);
+    }
     public static function site(): ?array { return self::$site; }
     public static function id(): int { return (int)(self::$site['id'] ?? 0); }
     public static function database(): string { return self::$site['database_name'] ?? (getenv('DB_NAME') ?: 'portfolio_db'); }

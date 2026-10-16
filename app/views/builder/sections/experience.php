@@ -1,0 +1,1 @@
+<h2><?= $e($settings['heading']??'Experience') ?></h2><div class="experience-list"><?php foreach($items as $item): ?><article><p class="eyebrow"><?= $e($item['date_range']??'') ?></p><h3><?= $e($item['title']) ?></h3><p><?= $e($item['organization']??'') ?></p><p class="prose"><?= nl2br($e($item['description']??'')) ?></p></article><?php endforeach; ?></div>

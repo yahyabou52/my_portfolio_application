@@ -3,7 +3,6 @@ import { randomBytes } from 'node:crypto';
 import { Script } from 'node:vm';
 const base = process.env.TEST_BASE_URL || 'http://localhost:8765';
 const suffix = randomBytes(4).toString('hex');
-const password = randomBytes(18).toString('hex');
 class Client {
   cookies = new Map();
   async request(path, data, follow = true) {
@@ -24,15 +23,15 @@ class Client {
   }
 }
 function token(html){const match=html.match(/name="csrf_token" value="([^"]+)"/);assert.ok(match,'CSRF token rendered');return match[1];}
-const slugs=['qa-a-'+suffix,'qa-b-'+suffix];
+// Legacy CRUD contracts run against isolated copies of existing data. New signup is tested in test-builder-http.mjs.
+const fixtureAccounts=JSON.parse(await (await import('node:fs/promises')).readFile(new URL('../.local/legacy-test-sites.json',import.meta.url),'utf8'));
+const slugs=fixtureAccounts.map(a=>a.slug);
 const clients=[new Client(),new Client()];
 for(let i=0;i<2;i++){
- const c=clients[i],slug=slugs[i];
- const signup=await c.request('/signup');
- const result=await c.request('/signup',{csrf_token:token(signup.text),slug,name:'Test Studio '+i,email:slug+'@example.com',password});
- assert.ok(result.url.includes('/s/'+slug+'/admin/login'),result.text.slice(-1500));
- const login=await c.request('/s/'+slug+'/admin/login',{csrf_token:token(result.text),username:slug+'@example.com',password});
- assert.ok(login.url.includes('/admin/dashboard'),'Owner can sign in');
+ const c=clients[i],slug=slugs[i],account=fixtureAccounts[i];
+ const loginPage=await c.request('/s/'+slug+'/admin/login');
+ const login=await c.request('/s/'+slug+'/admin/login',{csrf_token:token(loginPage.text),username:account.email,password:account.password});
+ assert.ok(login.url.includes('/admin/dashboard'),'Legacy owner can sign in');
  const site=await c.request('/s/'+slug);assert.equal(site.status,200);assert.ok(site.text.includes('Test Studio '+i));assert.ok(!site.text.includes('Fatal error'));
 }
 const [a,b]=clients;const [siteA,siteB]=slugs;
@@ -139,4 +138,4 @@ const emptyCTA=(await visitor.request('/s/'+siteA)).text.match(/<nav[\s\S]*?<\/n
 const overview=await a.request('/s/'+siteA+'/admin/dashboard');assert.ok(!overview.text.includes('12847'));assert.ok(!overview.text.includes('Project Gallery'));assert.ok(!overview.text.includes('Categories'));assert.ok(overview.text.includes('Unread messages'));
 console.log('UX checks passed: editor groups, canonical routes, retained drafts, independent settings, unified footer, publication and owner preview.');
 
-console.log(JSON.stringify({passed:true,sites:slugs,checks:['signup','login','identity editing','page text editing','tenant data isolation','session isolation','CSRF rejection','anonymous rejection','missing tenant','disabled bypass','public page image URLs','image upload and public logo','spoofed image rejection','media isolation','section visibility','section ordering','22 dashboard screens and inline JS','theme publishing','footer publishing']},null,2));
+console.log(JSON.stringify({passed:true,sites:slugs,checks:['legacy fixtures','login','identity editing','page text editing','tenant data isolation','session isolation','CSRF rejection','anonymous rejection','missing tenant','disabled bypass','public page image URLs','image upload and public logo','spoofed image rejection','media isolation','section visibility','section ordering','22 dashboard screens and inline JS','theme publishing','footer publishing']},null,2));

@@ -9,7 +9,7 @@ final class PlatformController {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!hash_equals($_SESSION['platform_csrf'], (string)($_POST['csrf_token'] ?? ''))) { http_response_code(403); exit('Please reload the form.'); }
             $slug = strtolower(trim((string)($_POST['slug'] ?? '')));
-            if (!preg_match('/^[a-z0-9][a-z0-9-]{2,39}$/', $slug)) { $error = 'Use 3–40 lowercase letters, numbers, or hyphens for your website address.'; }
+            if (!TenantContext::validSlug($slug)) { $error = 'Use 3–40 lowercase letters, numbers, or hyphens for your website address.'; }
             elseif ($path === '/login') { header('Location: ' . PLATFORM_URL . '/s/' . $slug . '/admin/login'); exit; }
             elseif ($path === '/signup') {
                 $name = trim((string)($_POST['name'] ?? ''));

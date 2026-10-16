@@ -62,6 +62,16 @@ class ContentRepository {
         $navigationMenu = $this->buildNavigationTree();
         $activeServices = $this->mapServices($this->serviceModel->getPublished());
 
+        if(TenantContext::editorMode()==='website_first') {
+            require_once ROOT_PATH.'/app/core/builder/BuilderStore.php';
+            $document=(new BuilderStore(Database::getInstance()->getConnection(),TenantContext::id()))->published();
+            $profile=$document['profile'];
+            $siteSettings=array_merge($siteSettings,['site_title'=>$profile['name'],'site_tagline'=>$profile['profession'],'site_description'=>$profile['intro']]);
+            $contactSettings=['contact_email'=>$profile['email'],'contact_phone'=>$profile['phone'],'contact_address'=>$profile['location']];
+            $socialLinks=$profile['social'];
+            $footerSettings['footer_text']='© '.date('Y').' '.$profile['name'];
+        }
+
         return [
             'siteSettings' => $siteSettings,
             'contactSettings' => $contactSettings,
