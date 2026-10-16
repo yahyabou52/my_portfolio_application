@@ -18,6 +18,7 @@ Run-Php 'scripts/prepare-design-parity.php' @('--editor')
 Run-Node 'scripts/test-editor-ui.mjs'
 Run-Node 'scripts/test-editor-workspace.mjs'
 Run-Node 'scripts/test-panel-drag.mjs'
+Run-Node 'scripts/test-toolbar-state.mjs'
 Run-Node 'scripts/test-block-move.mjs'
 Run-Node 'scripts/test-structure-ui.mjs'
 Run-Node 'scripts/test-collections-ui.mjs'

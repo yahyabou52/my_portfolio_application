@@ -34,3 +34,6 @@ The owner-checked, revision-checked structure endpoint validates both source and
 Both the main editor dock and contextual section toolbar have a grip for dragging the interface around the viewport. This moves only editor chrome; website blocks and draft data are untouched. Positions are stored per site in browser local storage, clamped to the viewport, and restored after refresh. Arrow keys move a focused grip; Home or double-click resets it. Escape cancels a pointer drag.
 
 scripts/test-panel-drag.mjs checks independent movement, retained contextual position, persistence, keyboard/reset behavior, mobile viewport bounds, no navigation and unchanged section dimensions.
+
+## Stable contextual toolbar state
+The section toolbar remains visible when crossing gaps or moving to other editor controls. Hovering descendants of the same section no longer recreates its buttons. Pinned controls remain available while scrolling, draft refreshes retain the selected section when it still exists, and Escape clears the selection so scrolling cannot accidentally show the toolbar again. Regression coverage: scripts/test-toolbar-state.mjs.
