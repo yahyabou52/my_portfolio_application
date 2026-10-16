@@ -1,0 +1,18 @@
+<?php $e=fn($s)=>htmlspecialchars((string)$s,ENT_QUOTES,'UTF-8'); ?>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?= $kind==='account'?'Account':'Website' ?> settings</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></head><body>
+<main class="container py-5" style="max-width:720px"><nav class="d-flex gap-3 mb-4"><a href="<?= url() ?>">Website</a><a href="<?= url('edit') ?>">Edit website</a><a href="<?= url('manage') ?>">Manage content</a><a href="<?= url($kind==='account'?'website-settings':'account') ?>"><?= $kind==='account'?'Website':'Account' ?> settings</a></nav>
+<h1><?= $kind==='account'?'Account settings':'Website settings' ?></h1><p><?= $kind==='account'?'Your private login details. They are never published on your portfolio.':'Shared profile details used across your website. Save a draft, then Publish in the website editor.' ?></p>
+<form id="wfe-settings-form">
+<?php if($kind==='account'): ?>
+<label class="form-label" for="email">Login email</label><input class="form-control mb-3" id="email" name="email" type="email" value="<?= $e($_SESSION['admin_user']['email']) ?>" required maxlength="60">
+<label class="form-label" for="current_password">Current password</label><input class="form-control mb-3" id="current_password" name="current_password" type="password" autocomplete="current-password" required>
+<label class="form-label" for="new_password">New password (optional)</label><input class="form-control mb-3" id="new_password" name="new_password" type="password" autocomplete="new-password" minlength="12" maxlength="72">
+<?php else: foreach(['name'=>'Public name','profession'=>'Profession','intro'=>'Introduction','bio'=>'About you','email'=>'Public contact email','phone'=>'Phone','location'=>'Location'] as $key=>$label): ?>
+<label class="form-label" for="<?= $key ?>"><?= $label ?></label><textarea class="form-control mb-3" id="<?= $key ?>" name="profile.<?= $key ?>" rows="<?= in_array($key,['intro','bio'])?3:1 ?>"><?= $e($document['profile'][$key]) ?></textarea>
+<?php endforeach; ?><label class="form-label" for="profile-photo">Profile photo</label><input type="file" class="form-control mb-3" id="profile-photo" accept="image/jpeg,image/png,image/webp,image/gif"><input type="hidden" name="profile.photo" id="photo-path" value="<?= $e($document['profile']['photo']) ?>">
+<h2>Social links</h2><p>One link per line: platform, https://address</p><textarea aria-label="Social links" class="form-control mb-3" name="social_links" rows="5"><?php foreach($document['profile']['social'] as $link)echo $e(($link['platform']??'link').', '.$link['url'])."\n"; ?></textarea>
+<?php endif; ?>
+<button class="btn btn-primary" id="wfe-settings-save"><?= $kind==='account'?'Save account':'Save profile draft' ?></button><p id="wfe-settings-status" role="status" aria-live="polite"></p>
+</form>
+<?php if($kind!=='account'): ?><hr><h2>Website address</h2><p>Changing this address takes effect immediately. Existing links to the old address will stop working.</p><form id="wfe-slug-form"><label class="form-label" for="slug">/s/</label><input class="form-control mb-3" id="slug" name="slug" value="<?= $e(TenantContext::site()['slug']) ?>" required><button class="btn btn-outline-primary">Change website address</button></form><?php endif; ?>
+</main><script type="application/json" id="wfe-settings-config"><?= json_encode(['kind'=>$kind,'api'=>url('editor-api/'),'csrf'=>csrf_token(),'revision'=>$revision],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?></script><script src="<?= asset('js/wfe-settings.js') ?>" defer></script></body></html>

@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-16",
+  "browser": "Installed Chrome via Playwright",
+  "suite": "npm test",
+  "passed": true,
+  "suites": [
+    "tenant migration and publish/draft data",
+    "legacy skill sync on isolated database",
+    "HTTP authorization and visitor isolation",
+    "legacy SaaS and UX",
+    "inline editor browser",
+    "sections/theme/device preview browser",
+    "collections and messages browser",
+    "setup/account/website settings browser",
+    "golden design parity"
+  ],
+  "visualComparisons": 18,
+  "differentPixels": 0,
+  "widths": [
+    1440,
+    768,
+    390
+  ],
+  "additionalRegression": "Project-detail pages use the published profile and theme snapshot; PHP and HTTP suites passed again after this fix.",
+  "limitations": [
+    "Legacy mobile footer overflow and overlapping hero stats retained under no-restyle constraint",
+    "Chrome only; Safari, Firefox and physical devices not verified",
+    "No production deployment or customer activation"
+  ]
+}

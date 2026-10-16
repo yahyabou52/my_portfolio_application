@@ -10,18 +10,27 @@ try{
  const context=await browser.newContext({reducedMotion:'reduce'}),visitor=await browser.newContext({reducedMotion:'reduce'});
  const page=await context.newPage();await page.goto(base+'/admin/login');await page.locator('[name=username]').fill(fixture.username);await page.locator('[name=password]').fill(fixture.password);
  await Promise.all([page.waitForURL(base),page.locator('button[type=submit]').click()]);
- const results=[];
+ const results=[];const screenshotVisitor=await visitor.newPage();
  for(const width of [1440,768,390]){
   await page.setViewportSize({width,height:1000});await page.goto(base,{waitUntil:'networkidle'});await page.evaluate(()=>document.fonts.ready);
   const off=await page.locator('main section').evaluateAll(nodes=>nodes.map(n=>({key:n.dataset.sectionKey,width:n.getBoundingClientRect().width,height:n.getBoundingClientRect().height})));
-  await writeFile(new URL('public-'+width+'.png',out),await page.screenshot({fullPage:true}));
+  await screenshotVisitor.setViewportSize({width,height:1000});await screenshotVisitor.goto(base,{waitUntil:'networkidle'});await screenshotVisitor.evaluate(()=>document.fonts.ready);
+  await writeFile(new URL('public-'+width+'.png',out),await screenshotVisitor.screenshot({fullPage:true}));
+  await writeFile(new URL('public-viewport-'+width+'.png',out),await screenshotVisitor.screenshot());
   await page.goto(base+'/edit',{waitUntil:'networkidle'});await page.evaluate(()=>document.fonts.ready);
   const on=await page.locator('main section').evaluateAll(nodes=>nodes.map(n=>({key:n.dataset.sectionKey,width:n.getBoundingClientRect().width,height:n.getBoundingClientRect().height})));
   assert.deepEqual(on,off,'Editing changed section dimensions at '+width);
   await writeFile(new URL('edit-'+width+'.png',out),await page.screenshot({fullPage:true}));
+  await writeFile(new URL('edit-viewport-'+width+'.png',out),await page.screenshot());
   results.push({width,sectionDimensionsEqual:true});
  }
  await page.setViewportSize({width:1440,height:1000});await page.goto(base+'/edit',{waitUntil:'networkidle'});
+ // Transient save failures retry without losing pending edits.
+ let failedOnce=false;await page.route('**/editor-api/save',async route=>{if(!failedOnce){failedOnce=true;await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Temporary save failure'})});}else await route.continue();});
+ const retryHeading=page.locator('[data-edit-field="hero.hero_title"]');await retryHeading.fill('Retry preserved this edit');await page.locator('#wfe-status').filter({hasText:'Saved draft'}).waitFor();assert.ok(failedOnce);await page.unroute('**/editor-api/save');
+ // Paste rich clipboard data as plain text, without markup.
+ await retryHeading.focus();await page.evaluate(()=>{const selection=window.getSelection();selection.selectAllChildren(document.activeElement);const clipboard=new DataTransfer();clipboard.setData('text/plain','Plain pasted title');clipboard.setData('text/html','<b>Plain pasted title</b>');document.activeElement.dispatchEvent(new ClipboardEvent('paste',{clipboardData:clipboard,bubbles:true,cancelable:true}));});
+ await page.locator('#wfe-status').filter({hasText:'Saved draft'}).waitFor();assert.equal(await retryHeading.locator('b').count(),0);
  const heading=page.locator('[data-edit-field="hero.hero_title"]');await heading.fill('Private inline title');await page.locator('#wfe-status').filter({hasText:'Saved draft'}).waitFor();
  const publicPage=await visitor.newPage();const response=await publicPage.goto(base);
  const source=await response.text();assert.ok(!source.includes('Private inline title'));assert.ok(!/wfe-editor|wfe-config|data-edit-field|data-owner-edit/.test(source),'Visitor receives editor markup');
@@ -44,6 +53,6 @@ try{
  const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a7V8AAAAASUVORK5CYII=','base64');
  const chooserPromise=page.waitForEvent('filechooser');await page.locator('[data-edit-kind=image]').first().click();await (await chooserPromise).setFiles({name:'editor-test.png',mimeType:'image/png',buffer:png});
  await page.locator('#wfe-status').filter({hasText:'Saved draft'}).waitFor();assert.ok((await page.locator('[data-edit-kind=image]').first().getAttribute('src')).includes('assets/uploads/sites/'));
- await writeFile(new URL('report.json',out),JSON.stringify({passed:true,dimensions:results,checks:['draft privacy','publish UI','discard UI','undo/redo','conflict UI','button validation','real image upload','visitor assets']},null,2));
+ await writeFile(new URL('report.json',out),JSON.stringify({passed:true,dimensions:results,checks:['transient save retry','plain-text paste','draft privacy','publish UI','discard UI','undo/redo','conflict UI','button validation','real image upload','visitor assets']},null,2));
  console.log('PASS: real-browser editor save/publish/discard, undo/redo, stale revision, buttons, uploads, visitor isolation and unchanged section dimensions at all widths.');
 }finally{await browser.close();}

@@ -25,6 +25,14 @@ final class SiteRenderer {
     private function view(string $view,array $data): string {
         extract($data,EXTR_SKIP);ob_start();require ROOT_PATH.'/app/views/'.$view.'.php';return ob_get_clean();
     }
+    public function renderPublishedTemplate(array $document,string $view,array $extra=[]): string {
+        SiteDocument::validate($document);$document['presentation']??=LegacyViewData::capture($this->db);
+        return WebsiteContent::using($document['presentation']['values'],function()use($document,$view,$extra){
+            $data=array_merge(LegacyViewData::data($this->db,$document,'portfolio'),$extra);
+            $data['content']=$this->view($view,$data);
+            return EditableFields::annotate($this->view('layouts/main',$data),$document,false);
+        });
+    }
     public function render(array $document,string $pageKey,bool $editing=false,bool $owner=false,bool $controls=true): string {
         SiteDocument::validate($document);
         $page=$document['pages'][$pageKey]??null;
@@ -42,13 +50,13 @@ final class SiteRenderer {
                 $sources=[];
                 foreach(['home','about','contact','portfolio'] as $source){$sourceData=LegacyViewData::data($this->db,$document,$source);$sourceData['wfeEditing']=$editing&&$controls&&TenantContext::editorMode()==='website_first';$sources+=self::sections($this->view($views[$source],$sourceData));}
                 $sections=$page['sections'];usort($sections,fn($a,$b)=>$a['order']<=>$b['order']);$content='';
-                $map=['hero'=>'home.section.hero-section','about'=>'about.section.about-hero','projects'=>'home.section.featured-work-section','skills'=>'home.section.skills-section','experience'=>'about.section.experience-section','contact'=>'contact.section.contact-content','services'=>'home.section.services-section','testimonials'=>'home.section.testimonials-section'];
+
                 foreach($sections as $section){
                     if(!$section['visible'])continue;
                     if(isset(SectionRegistry::get($section['type'])['collection'])&&!$this->collections($section['type']))continue;
                     if($section['type']==='about'&&trim($document['profile']['bio'])==='')continue;
                     if($section['type']==='contact'&&$document['profile']['email']===''&&$document['profile']['phone']==='')continue;
-                    $sourceKey=$section['type']==='projects'&&$section['variant']==='list'?'portfolio.section.portfolio-grid':$map[$section['type']];
+                    $sourceKey=$section['type']==='projects'&&$section['variant']==='list'?'portfolio.section.portfolio-grid':SectionRegistry::get($section['type'])['section_key'];
                     $html=$sources[$sourceKey]??'';
                     $html=preg_replace('/<section\b/','<section data-section-id="'.htmlspecialchars($section['id'],ENT_QUOTES).'"',$html,1);
                     $content.=$html;
@@ -57,12 +65,14 @@ final class SiteRenderer {
             $content=preg_replace_callback('/<form\b[^>]*>/i',fn($m)=>$m[0].'<input type="hidden" name="csrf_token" value="'.htmlspecialchars(csrf_token(),ENT_QUOTES).'">',$content);
             $data['content']=$content;
             $html=$this->view('layouts/main',$data);
+            $html=EditableFields::annotate($html,$document,false);
             if($controls && $editing && TenantContext::editorMode()==='website_first') {
                 $html=EditableFields::annotate($html,$document);
                 $store=new BuilderStore($this->db,TenantContext::id());$state=$store->state();$live=$store->published();$live['presentation']??=$document['presentation'];
-                $values=[];foreach(EditableFields::schema() as $id=>$spec)$values[$id]=EditableFields::value($document,$spec);
+                $values=[];foreach(SectionRegistry::editableFields($document) as $id=>$spec)$values[$id]=EditableFields::value($document,$spec);
                 $variants=[];foreach(SectionRegistry::all() as $type=>$spec)$variants[$type]=SectionRegistry::availableVariants($type);
-                $boot=['page'=>$pageKey,'sections'=>DraftStructure::sections($document,$pageKey),'types'=>array_keys(SectionRegistry::all()),'variants'=>$variants,'compatibility'=>!empty($document['compatibility']),'theme'=>$document['presentation']['values'],'preview'=>url('edit?page='.$pageKey.'&device_preview=1'),'api'=>url('editor-api/'),'csrf'=>csrf_token(),'revision'=>(int)$state['revision'],'values'=>$values,'published'=>SiteDocument::encode($document)===SiteDocument::encode($live)];
+                $counts=[];foreach(['projects','skills','experience','services','testimonials'] as $type)$counts[$type]=count($this->collections($type));
+                $boot=['collectionCounts'=>$counts,'page'=>$pageKey,'sections'=>DraftStructure::sections($document,$pageKey),'types'=>array_keys(SectionRegistry::all()),'variants'=>$variants,'compatibility'=>!empty($document['compatibility']),'theme'=>$document['presentation']['values'],'preview'=>url('edit?page='.$pageKey.'&device_preview=1'),'api'=>url('editor-api/'),'csrf'=>csrf_token(),'revision'=>(int)$state['revision'],'values'=>$values,'published'=>SiteDocument::encode($document)===SiteDocument::encode($live)];
                 $html=str_replace('</body>',$this->view('builder/editor',['boot'=>$boot]).'</body>',$html);
             }elseif($owner&&!$editing){
                 $html=str_replace('</body>','<a data-owner-edit class="btn btn-primary position-fixed bottom-0 end-0 m-3" style="z-index:1050" href="'.htmlspecialchars(url('edit?page='.$pageKey),ENT_QUOTES).'">Edit website</a></body>',$html);

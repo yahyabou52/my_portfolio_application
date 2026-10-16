@@ -50,9 +50,12 @@ if (TenantContext::editorMode() === 'website_first') {
         http_response_code(409);exit('Legacy editing is disabled for this website. Use the website editor.');
     }
     if($_SERVER['REQUEST_METHOD']==='GET') {
-        if(in_array($relative,['/admin','/admin/dashboard','/admin/website','/admin/settings','/admin/theme','/admin/hero','/admin/about','/admin/footer','/admin/navigation','/admin/pages'],true)) {
-            (new User())->requireAuth();header('Location: '.url());exit;
+        if(($relative==='/admin'||str_starts_with($relative,'/admin/'))&&!in_array($relative,['/admin/login','/admin/logout'],true)) {
+            (new User())->requireAuth();
+            $destination=match($relative){'/admin','/admin/dashboard'=>'','/admin/settings'=>'website-settings','/admin/users'=>'account','/admin/website','/admin/theme','/admin/hero','/admin/about','/admin/footer','/admin/navigation','/admin/pages'=>'edit',default=>'manage'};
+            header('Location: '.url($destination));exit;
         }
+        if(in_array($relative,['/account','/website-settings'],true)){(new BuilderController())->settings($relative==='/account'?'account':'website');exit;}
         if($relative==='/manage'){(new BuilderController())->manage();exit;}
         if($relative==='/edit'){(new BuilderController())->show((string)($_GET['page']??'home'),true);exit;}
         $pageKey=trim($relative,'/');if($pageKey==='')$pageKey='home';

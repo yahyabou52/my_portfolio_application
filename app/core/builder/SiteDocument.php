@@ -4,12 +4,13 @@ require_once __DIR__.'/SectionRegistry.php';
 final class SiteDocument {
     public static function fresh(array $answers): array {
         $name=trim((string)($answers['name']??'Your name'));
-        $profile=['name'=>$name,'profession'=>(string)($answers['profession']??''),'intro'=>(string)($answers['intro']??''),'bio'=>'','photo'=>'','email'=>(string)($answers['contact_email']??''),'phone'=>'','location'=>'','social'=>[]];
+        $profile=['name'=>$name,'profession'=>(string)($answers['profession']??''),'intro'=>(string)($answers['intro']??''),'bio'=>(string)($answers['bio']??''),'photo'=>'','email'=>(string)($answers['contact_email']??''),'phone'=>'','location'=>'','social'=>[]];
         $sections=[];
         foreach(['hero','about','projects','skills','experience','contact'] as $i=>$type) {
             $spec=SectionRegistry::get($type);
             $sections[]=['id'=>$type.'-1','type'=>$type,'variant'=>$spec['variants'][0],'order'=>$i*10,'visible'=>true,'settings'=>['heading'=>ucfirst($type)],'collection'=>$spec['collection']??null];
         }
+        if(isset($answers['sections'])&&is_array($answers['sections']))foreach($sections as &$section)$section['visible']=in_array($section['type'],$answers['sections'],true);unset($section);
         $sections[0]['settings']=['heading'=>'','button_label'=>'Get in touch','button_url'=>'mailto:'.$profile['email']];
         if($profile['email']==='')$sections[0]['settings']['button_url']='';
         return ['schema_version'=>1,'profile'=>$profile,'theme'=>['color'=>'#7B3FE4','background'=>'#ffffff','font'=>'system'],'pages'=>['home'=>['title'=>$name,'visible'=>true,'sections'=>$sections]]];

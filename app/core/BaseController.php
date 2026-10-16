@@ -71,6 +71,11 @@ abstract class BaseController {
     }
     
     protected function render($view, $layout = 'main', $data = []) {
+        if($layout==='main'&&TenantContext::editorMode()==='website_first'){
+            require_once ROOT_PATH.'/app/core/builder/SiteRenderer.php';require_once ROOT_PATH.'/app/core/builder/BuilderStore.php';
+            $db=Database::getInstance()->getConnection();$published=(new BuilderStore($db,TenantContext::id()))->published();
+            echo (new SiteRenderer($db))->renderPublishedTemplate($published,$view,$data);return;
+        }
         if ($layout === 'main') {
             $pageKey = explode('/', $view)[0] === 'home' ? basename($view) : explode('/', $view)[0];
             if ($pageKey === 'index') { $pageKey = 'home'; }

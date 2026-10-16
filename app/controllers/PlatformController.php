@@ -19,9 +19,11 @@ final class PlatformController {
                     $error = 'Enter your name, a valid email, and a password with 12–72 characters.';
                 } else {
                     try {
-                        $site = SiteProvisioner::create($name, $slug, $email, $password);
+                        $answers=['profession'=>trim((string)($_POST['profession']??'')),'intro'=>trim((string)($_POST['intro']??'')),'contact_email'=>trim((string)($_POST['contact_email']??''))];if(isset($_POST['setup_sections']))$answers['sections']=(array)($_POST['sections']??[]);
+                        require_once ROOT_PATH.'/app/core/builder/SiteDocument.php';SiteDocument::validate(SiteDocument::fresh($answers+['name'=>$name]));
+                        $site = SiteProvisioner::create($name, $slug, $email, $password,$answers,$_FILES['photo']??null);
                         header('Location: ' . PLATFORM_URL . '/s/' . $site['slug'] . '/admin/login?created=1'); exit;
-                    } catch (PDOException $e) {
+                    } catch (InvalidArgumentException $e) { $error=$e->getMessage(); } catch (PDOException $e) {
                         error_log($e->getMessage());
                         $error = $e->getCode() === '23000' ? 'That website address is already taken. Choose another.' : 'Your website could not be created. Please try again.';
                     } catch (Throwable $e) { error_log($e->getMessage()); $error = 'Your website could not be created. Please try again.'; }

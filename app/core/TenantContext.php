@@ -26,6 +26,7 @@ final class TenantContext {
     public static function validSlug(string $slug): bool {
         return (bool)preg_match('/^[a-z0-9][a-z0-9-]{2,39}$/',$slug) && !in_array($slug,['admin','api','assets','signup','login','logout','account','settings','manage','edit','support','billing','www','privacy','terms','s'],true);
     }
+    public static function using(array $site,callable $callback) { $previous=self::$site;self::$site=$site;try{return $callback();}finally{self::$site=$previous;} }
     public static function site(): ?array { return self::$site; }
     public static function id(): int { return (int)(self::$site['id'] ?? 0); }
     public static function database(): string { return self::$site['database_name'] ?? (getenv('DB_NAME') ?: 'portfolio_db'); }

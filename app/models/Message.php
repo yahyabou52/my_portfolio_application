@@ -4,6 +4,8 @@ require_once ROOT_PATH . '/app/core/BaseModel.php';
 
 class Message extends BaseModel {
     protected $table = 'messages';
+    // This table has a database-default created_at, but no updated_at column.
+    protected $timestamps = false;
     protected $fillable = [
         'name',
         'email',
@@ -89,6 +91,7 @@ class Message extends BaseModel {
             $errors['message'] = 'Message must be at least 10 characters long';
         }
         
+        foreach(['name'=>150,'email'=>150,'subject'=>200,'message'=>20000] as $field=>$max)if(strlen((string)($data[$field]??''))>$max)$errors[$field]='This field is too long.';
         return $errors;
     }
 }

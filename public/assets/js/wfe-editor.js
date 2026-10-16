@@ -17,6 +17,8 @@ function updateDOM(id,value,force=false){
  schemaNodes().filter(n=>n.dataset.editField===id).forEach(node=>{
   if(node.dataset.editKind==='image'){node.src=value.startsWith('http')?value:new URL('/'+value,location.origin).href;}
   else if(node!==document.activeElement||force)writeText(node,value);
+  if(node.tagName==='A'&&id==='profile.email')node.href='mailto:'+value;
+  if(node.tagName==='A'&&id==='profile.phone')node.href='tel:'+value;
  });
  document.querySelectorAll('[data-edit-link]').forEach(node=>{if(node.dataset.editLink===id)node.href=value;});
 }
@@ -57,7 +59,7 @@ for(const node of schemaNodes()){
  const kind=node.dataset.editKind;
  node.setAttribute('tabindex','0');
  if(kind==='text'){
-  node.setAttribute('contenteditable','true');
+  const originalWrap=getComputedStyle(node).overflowWrap;node.setAttribute('contenteditable','true');node.style.overflowWrap=originalWrap;node.addEventListener('click',event=>{if(node.closest('a'))event.preventDefault();});
   node.addEventListener('beforeinput',event=>{if(event.inputType.startsWith('format'))event.preventDefault();});
   node.addEventListener('drop',event=>{event.preventDefault();document.execCommand('insertText',false,event.dataTransfer.getData('text/plain'));});node.setAttribute('spellcheck','true');node.setAttribute('aria-label','Edit '+node.dataset.editField.replaceAll(/[.:_]/g,' '));
   node.addEventListener('paste',event=>{event.preventDefault();const text=event.clipboardData.getData('text/plain');document.execCommand('insertText',false,text);});

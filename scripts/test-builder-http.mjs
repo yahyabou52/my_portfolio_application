@@ -30,7 +30,7 @@ assert.equal((await a.request(site+'/admin/website',{csrf_token:csrf,group:'iden
 assert.ok(!(await visitor.request(site)).text.includes('FORBIDDEN'));
 for(const path of ['/about','/services','/contact','/portfolio'])assert.equal((await visitor.request(site+path)).status,200);
 const privateProject=await visitor.request(site+'/portfolio/private-project');assert.equal(privateProject.status,404);assert.ok(!privateProject.text.includes('PRIVATE PROJECT'));assert.ok(!privateProject.text.includes(accounts[0].email),'Compatibility error page does not publish account email');
-const publicProject=await visitor.request('/s/'+accounts[1].slug+'/portfolio/public-project');assert.equal(publicProject.status,200);assert.ok(publicProject.text.includes('Published canonical profile'),'Project detail reads canonical published profile');
+const publicProject=await visitor.request('/s/'+accounts[1].slug+'/portfolio/public-project');assert.equal(publicProject.status,200);assert.ok(publicProject.text.includes('Published canonical profile'),'Project detail reads canonical published profile');assert.ok(publicProject.text.includes('--primary-color:#123456'),'Project detail reads the published theme snapshot');
 assert.ok((await visitor.request('/s/'+accounts[1].slug)).text.includes('Public project'),'Published collection item appears without page republish');
 const forged=new Client();forged.cookies.set('portfolio_'+accounts[0].site_id,b.cookies.get('portfolio_'+accounts[1].site_id)||'invalid');
 assert.equal((await forged.request(site+'/edit')).status,403,'Forged cross-tenant cookie rejected');

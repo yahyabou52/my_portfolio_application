@@ -81,14 +81,15 @@ final class TenantMigration {
         $heroSettings['button_url']=SiteDocument::validUrl($link)?$link:'';
         $keys=['hero'=>'home.section.hero-section','projects'=>'home.section.featured-work-section','skills'=>'home.section.skills-section','about'=>'home.section.about-section','contact'=>'home.section.cta-section'];
         foreach($home['sections'] as &$section){$key=$keys[$section['type']]??'';if($key){$section['visible']=($legacy['content.'.$key]??'1')!=='0';$section['order']=(int)($legacy['content.'.$key.'.order']??$section['order']);}}unset($section);
-        foreach(['about'=>['about','skills','experience'],'contact'=>['contact'],'portfolio'=>['projects']] as $key=>$types){
+        foreach(['about'=>['about','skills','experience'],'contact'=>['contact'],'portfolio'=>['projects'],'services'=>['services']] as $key=>$types){
             if(!isset($pages[$key]))continue;
             $doc['pages'][$key]=['title'=>(string)$pages[$key]['title'],'visible'=>!empty($pages[$key]['is_active']),'sections'=>array_values(array_filter($home['sections'],fn($s)=>in_array($s['type'],$types,true)))];
         }
         // Complete legacy records remain in their original tables and in the mandatory export.
         // The compatibility record prevents migration from pretending unsupported pages are converted.
-        $doc['compatibility']=['legacy_pages'=>array_values(array_diff(array_keys($pages),array_keys($doc['pages']))),'requires_visual_review'=>true,'blocking_reasons'=>['Legacy navigation, footer, custom page labels and non-MVP sections require complete mapping before activation.']];
         $doc['presentation']=LegacyViewData::capture($this->db);
+        $unsupported=array_values(array_diff(array_keys($pages),array_keys($doc['pages'])));
+        $doc['compatibility']=['legacy_pages'=>$unsupported,'requires_visual_review'=>true,'blocking_reasons'=>!empty($doc['presentation']['incomplete'])?['Legacy source tables are incomplete. Repair and refresh before activation.']:($unsupported?['Custom pages require a matching existing template before activation.']:[])];
         return $doc;
     }
     public function owner(): ?int {

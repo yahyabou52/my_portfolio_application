@@ -1,4 +1,5 @@
 <?php
+if(!preg_match('/^portfolio_builder_test_[a-f0-9]+$/',(string)getenv('DB_NAME'))){fwrite(STDERR,"Set DB_NAME to an isolated builder test database.\n");exit(1);}
 require __DIR__ . '/../config/config.php';
 require ROOT_PATH . '/app/core/BaseModel.php';
 require ROOT_PATH . '/app/models/SkillCategory.php';
@@ -31,7 +32,8 @@ $data = [
 
 try {
     $skill->syncStructure($data);
-    echo "Sync completed successfully\n";
+    $rows=$skill->getFlatList(true);if(count($rows)!==2||$rows[0]['name']!=='User Research & Testing')throw new RuntimeException('Unexpected synchronized skill records.');
+    echo "PASS: legacy skill synchronization on an isolated fixture\n";
 } catch (Throwable $exception) {
-    echo 'Sync failed: ' . $exception->getMessage() . "\n";
+    fwrite(STDERR,'Sync failed: ' . $exception->getMessage() . "\n");exit(1);
 }

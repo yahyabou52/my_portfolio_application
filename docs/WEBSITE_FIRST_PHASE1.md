@@ -1,3 +1,5 @@
+> Historical Phase 1 report. For the completed implementation, current rollout coverage and browser results, see [WEBSITE_FIRST_COMPLETION.md](WEBSITE_FIRST_COMPLETION.md).
+
 # Website-first builder: Phase 1
 
 Baseline: branch `baseline/dashboard-saas`, commit `2b028c1`.

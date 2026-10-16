@@ -26,5 +26,9 @@ return results;});
 for(const [name,value] of checks)assert.equal(value,name.endsWith('default draft')?'draft':name.endsWith('stale')?409:name==='CSRF'?403:name==='unsafe URL'?422:200,name);
 const badCsrf=await context.request.post(base+'/editor-api/collection-save',{headers:{'X-CSRF-Token':'invalid'},data:{type:'projects',fields:{title:'bad'}}});assert.equal(badCsrf.status(),403);
 const anonymous=await visitor.request.get(base+'/editor-api/collection-list?type=projects');assert.equal(anonymous.status(),403);
+await visitor.goto(base);const csrf=await visitor.locator('meta[name=csrf-token]').getAttribute('content');
+await visitor.request.post(base+'/contact',{form:{csrf_token:csrf,name:'Test visitor',email:'visitor@example.com',subject:'Local test enquiry',message:'This is a local test message for the owner.'}});
+await page.goto(base+'/manage');const message=page.locator('details').filter({hasText:'Local test enquiry'}).first();await message.locator('summary').click();await Promise.all([page.waitForEvent('load'),message.getByRole('button',{name:'Mark read'}).click()]);
+const readMessage=page.locator('details').filter({hasText:'Local test enquiry'}).first();await readMessage.locator('summary').click();assert.ok((await readMessage.innerText()).includes('Read'));page.once('dialog',d=>d.accept());await Promise.all([page.waitForEvent('load'),readMessage.getByRole('button',{name:'Delete',exact:true}).click()]);
 console.log('PASS: shared inline/dashboard drawer, draft/publish/unpublish/live saves, every collection, stale item conflict, CSRF and URL validation.');
 }finally{await browser.close();}

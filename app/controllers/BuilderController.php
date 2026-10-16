@@ -7,6 +7,7 @@ require_once ROOT_PATH.'/app/core/builder/SiteRenderer.php';
 require_once ROOT_PATH.'/app/core/builder/EditableFields.php';
 require_once ROOT_PATH.'/app/core/builder/DraftStructure.php';
 require_once ROOT_PATH.'/app/core/builder/CollectionStore.php';
+require_once ROOT_PATH.'/app/core/builder/AccountSettings.php';
 final class BuilderController {
     public static function actor(): array {
         $user=(new User())->getCurrentUser();
@@ -29,13 +30,21 @@ final class BuilderController {
             if($_SERVER['REQUEST_METHOD']!=='POST')throw new RuntimeException('Method not allowed.',405);
             if(!hash_equals(csrf_token(),(string)($_SERVER['HTTP_X_CSRF_TOKEN']??$_POST['csrf_token']??'')))throw new RuntimeException('Your session expired. Reload the page.',403);
             if($action==='upload'){
-                $file=$_FILES['file']??[];$mime=isset($file['tmp_name'])?(new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']):'';
+                $file=$_FILES['file']??[];if(($file['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK||(int)($file['size']??0)>5*1024*1024)throw new InvalidArgumentException('Choose an image up to 5 MB.');$mime=isset($file['tmp_name'])?(new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']):'';
                 if(!in_array($mime,['image/jpeg','image/png','image/webp','image/gif'],true))throw new InvalidArgumentException('Choose a JPG, PNG, WebP or GIF image.');
                 $media=new Media();$id=$media->uploadFile($file,$actor['id']);$row=$media->find($id);
                 echo json_encode(['path'=>$row['file_path'],'url'=>media_url($row['file_path'])],JSON_THROW_ON_ERROR);return;
             }
             if((int)($_SERVER['CONTENT_LENGTH']??0)>1048576)throw new InvalidArgumentException('Request is too large.');
             $input=json_decode(file_get_contents('php://input'),true,512,JSON_THROW_ON_ERROR);
+            if(in_array($action,['account','slug'],true)){if(!is_array($input))throw new InvalidArgumentException('Invalid settings.');if($action==='account'){if(microtime(true)-(float)($_SESSION['account_attempt']??0)<2)throw new RuntimeException('Please wait before trying again.',429);$_SESSION['account_attempt']=microtime(true);}$result=$action==='account'?AccountSettings::save($db,$actor,$input):AccountSettings::slug($db,$actor,$input);echo json_encode($result,JSON_THROW_ON_ERROR);return;}
+            if($action==='message'){
+                $id=(int)($input['id']??0);$q=$db->prepare('SELECT id FROM messages WHERE id=?');$q->execute([$id]);if(!$q->fetchColumn())throw new RuntimeException('Message not found.',404);
+                if(($input['operation']??'')==='delete')$db->prepare('DELETE FROM messages WHERE id=?')->execute([$id]);
+                elseif(($input['operation']??'')==='read')$db->prepare('UPDATE messages SET is_read=1 WHERE id=?')->execute([$id]);
+                else throw new InvalidArgumentException('Unknown message action.');
+                echo json_encode(['saved'=>true]);return;
+            }
             if($action==='collection-save'){if(!is_array($input))throw new InvalidArgumentException('Invalid item.');echo json_encode((new CollectionStore($db))->save($input),JSON_THROW_ON_ERROR);return;}
             if(!is_array($input)||!is_int($input['revision']??null))throw new InvalidArgumentException('Missing draft revision.');
             $revision=$input['revision'];
@@ -44,7 +53,7 @@ final class BuilderController {
                 if(!is_array($input['patches']??null)||count($input['patches'])>300)throw new InvalidArgumentException('Invalid changes.');
                 foreach($input['patches'] as $id=>$value){
                     if(!is_string($value))throw new InvalidArgumentException('Editable values must be text.');
-                    $spec=EditableFields::schema()[$id]??throw new InvalidArgumentException('Unknown editable field.');
+                    $spec=EditableFields::schema($doc)[$id]??throw new InvalidArgumentException('Unknown editable field.');
                     if($spec['kind']==='image'&&$value!==EditableFields::value($doc,$spec)){
                         $q=$db->prepare("SELECT id FROM media_files WHERE file_path=? AND file_type='image'");$q->execute([$value]);
                         if($value!==''&&!$q->fetchColumn())throw new InvalidArgumentException('Choose an image owned by this website.');
@@ -64,6 +73,12 @@ final class BuilderController {
             if($status===500)error_log($e->getMessage());
         }
     }
+    public function settings(string $kind): void {
+        header('Cache-Control: private, no-store');
+        try{$db=Database::getInstance()->getConnection();$store=new BuilderStore($db,TenantContext::id());$actor=self::actor();$store->authorize($actor);$document=$this->document($store->draft($actor));$revision=(int)$store->state()['revision'];}
+        catch(Throwable $e){http_response_code(403);echo 'Only the website owner can change settings.';return;}
+        require ROOT_PATH.'/app/views/builder/settings.php';
+    }
     public function manage(): void {
         header('Cache-Control: private, no-store');
         try{$db=Database::getInstance()->getConnection();(new BuilderStore($db,TenantContext::id()))->authorize(self::actor());}
@@ -79,10 +94,11 @@ final class BuilderController {
         try{
             $document=$this->document($editing?$store->draft($actor):$store->published());
             if(!isset($document['pages'][$pageKey]) && !isset($document['compatibility']) && in_array($pageKey,['about','contact','portfolio','services'],true)) {
-                $types=['about'=>['about','skills','experience'],'contact'=>['contact'],'portfolio'=>['projects'],'services'=>[]][$pageKey];
+                if($editing){header('Location: '.url('edit'));return;}
+                $types=['about'=>['about','skills','experience'],'contact'=>['contact'],'portfolio'=>['projects'],'services'=>['services']][$pageKey];
                 $document['pages'][$pageKey]=['title'=>ucfirst($pageKey).' — '.$document['profile']['name'],'visible'=>true,'sections'=>array_values(array_filter($document['pages']['home']['sections'],fn($s)=>in_array($s['type'],$types,true)))];
             }
-            echo (new SiteRenderer($db))->render($document,$pageKey,$editing,$owner,!isset($_GET['device_preview']));
+            echo (new SiteRenderer($db))->render($document,$pageKey,$editing,$owner,!isset($_GET['device_preview']));unset($_SESSION['flash']);
         }catch(Throwable $e){http_response_code($e->getCode()===404?404:500);error_log($e->getMessage());echo $e->getCode()===404?'Page not found.':'Website could not be loaded.';}
     }
 }

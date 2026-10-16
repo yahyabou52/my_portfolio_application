@@ -1,7 +1,7 @@
 <?php
 require_once ROOT_PATH . '/scripts/update_schema.php';
 final class SiteProvisioner {
-    public static function create(string $name, string $slug, string $email, string $password): array {
+    public static function create(string $name, string $slug, string $email, string $password,array $answers=[],?array $photo=null): array {
         $registry = TenantContext::registry();
         $database = 'portfolio_site_' . bin2hex(random_bytes(8));
         $insert = $registry->prepare('INSERT INTO sites (slug, name, owner_email, database_name) VALUES (?, ?, ?, ?)');
@@ -32,7 +32,24 @@ final class SiteProvisioner {
             $siteRecord=['id'=>$id,'slug'=>$slug,'name'=>$name,'owner_email'=>$email,'database_name'=>$database];
             // Only new websites change insertion defaults; existing customer rows are untouched.
             foreach(['projects','services','timeline_items','testimonials'] as $table)$db->exec("ALTER TABLE `".$table."` ALTER COLUMN status SET DEFAULT 'draft'");
-            $document=SiteDocument::fresh(['name'=>$name]);
+            $document=SiteDocument::fresh(array_merge($answers,['name'=>$name]));
+            if($photo&&($photo['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE){
+                require_once ROOT_PATH.'/app/models/Media.php';
+                $mime=(new finfo(FILEINFO_MIME_TYPE))->file($photo['tmp_name']);
+                if(!in_array($mime,['image/jpeg','image/png','image/webp','image/gif'],true))throw new InvalidArgumentException('Choose a JPG, PNG, WebP or GIF photo.');
+                $document['profile']['photo']=TenantContext::using($siteRecord,fn()=>Database::using($db,function()use($photo){$media=new Media();$owner=Database::getInstance()->getConnection()->query("SELECT id FROM admin_users WHERE role='superadmin' LIMIT 1")->fetchColumn();$id=$media->uploadFile($photo,$owner);return $media->find($id)['file_path'];}));
+            }
+            $document['presentation']=LegacyViewData::capture($db);
+            $document['presentation']['global']['navigationMenu']=[['title'=>'Home','url'=>'/','children'=>[]]];
+            unset($document['presentation']['hero']['hero_title'],$document['presentation']['hero']['hero_background_image_path'],$document['presentation']['hero']['hero_background_image_url']);
+            $document['presentation']['hero']['hero_subtitle']='';
+            $document['presentation']['hero']['hero_primary_cta_text']='View my work';
+            $document['presentation']['hero']['hero_primary_cta_url']='/portfolio';
+            $document['presentation']['hero']['hero_secondary_cta_text']='Get in touch';
+            $document['presentation']['hero']['hero_secondary_cta_url']='/contact';
+            $document['presentation']['about']['headline']='About me';
+            $document['presentation']['about']['greeting']='Hello';
+            $document['presentation']['about']['philosophy']='';
             (new TenantMigration($db,$siteRecord))->migrate(ROOT_PATH.'/.local/builder-backups',true,$document);
             $registry->prepare("UPDATE sites SET status='active' WHERE id=?")->execute([$id]);
             return ['id'=>$id, 'slug'=>$slug];

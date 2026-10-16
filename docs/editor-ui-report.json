@@ -15,6 +15,8 @@
     }
   ],
   "checks": [
+    "transient save retry",
+    "plain-text paste",
     "draft privacy",
     "publish UI",
     "discard UI",

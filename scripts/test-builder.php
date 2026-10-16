@@ -34,7 +34,11 @@ $store=new BuilderStore($db,900001);
 $actor=['id'=>(int)$state['owner_id'],'site_id'=>900001,'role'=>'superadmin'];
 check($actor['id']>0,'Owner resolved from existing account');
 rejects(fn()=>$store->discard($actor,1),409,'Legacy candidate cannot bypass its authoritative editor');
-$db->exec("UPDATE builder_state SET editor_mode='website_first' WHERE id=1"); // Test fixture only; production activation remains guarded.
+$ready=$migration->verify();
+check($ready['blocking_reasons']===[]&&$ready['legacy_pages']===[],'All standard legacy pages are mapped without removing URLs');
+rejects(fn()=>$migration->activate(str_repeat('0',64),ROOT_PATH.'/.local/builder-test-backups'),0,'Activation rejects an unreviewed document hash');
+$activated=$migration->activate($ready['review_hash'],ROOT_PATH.'/.local/builder-test-backups');
+check($activated['editor_mode']==='website_first','Reviewed fixture activates with a backup');
 $published=$store->published();$draft=$store->draft($actor);$draft['profile']['intro']='PRIVATE DRAFT ONLY';
 $revision=$store->saveDraft($actor,1,$draft);
 check($store->published()===$published,'Draft save leaves public snapshot unchanged');
@@ -100,7 +104,7 @@ foreach(['a','b'] as $letter){
     }
     $tenant->prepare('INSERT INTO projects(title,slug,status) VALUES (?,?,?)')->execute([$letter==='a'?'PRIVATE PROJECT':'Public project',$letter==='a'?'private-project':'public-project',$letter==='a'?'draft':'published']);
     if($letter==='b'){
-        $owner=['id'=>(int)$tenantState['owner_id'],'site_id'=>(int)$created['id'],'role'=>'superadmin'];$doc['profile']['name']='Published canonical profile';
+        $owner=['id'=>(int)$tenantState['owner_id'],'site_id'=>(int)$created['id'],'role'=>'superadmin'];$doc['profile']['name']='Published canonical profile';$doc['presentation']['values']['primary_color']='#123456';
         $storeB=new BuilderStore($tenant,(int)$created['id']);$next=$storeB->saveDraft($owner,1,$doc);$storeB->publish($owner,$next);
     }
     $credentials[]=['slug'=>$slug,'email'=>$email,'password'=>$password,'site_id'=>(int)$created['id']];
@@ -120,3 +124,5 @@ file_put_contents(ROOT_PATH.'/.local/legacy-test-sites.json',json_encode($legacy
 file_put_contents(ROOT_PATH.'/.local/builder-test-sites.json',json_encode($credentials,JSON_THROW_ON_ERROR));
 check($hash===$exporter->sourceHash(),'Original demo is unchanged');
 echo "Phase 1 data tests passed. Fixture databases retained: ".$fixture.", ".$partial."\n";
+
+file_put_contents(ROOT_PATH.'/.local/builder-unit-fixture.json',json_encode(['database'=>$fixture],JSON_THROW_ON_ERROR));

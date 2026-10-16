@@ -1,0 +1,30 @@
+[
+  {
+    "width": 390,
+    "scrollWidth": 972,
+    "overflow": [
+      {
+        "class": "img-fluid rounded-3",
+        "width": 366
+      },
+      {
+        "class": "footer-logo",
+        "width": 960
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "scrollWidth": 972,
+    "overflow": [
+      {
+        "class": "img-fluid rounded-3",
+        "width": 366
+      },
+      {
+        "class": "footer-logo",
+        "width": 960
+      }
+    ]
+  }
+]

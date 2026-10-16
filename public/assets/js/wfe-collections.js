@@ -7,6 +7,10 @@ async function load(next=type){type=next;select.value=type;const response=await 
 function showError(e){document.getElementById('wfe-items-error').textContent=e.message;}
 async function show(next='projects',id=null){try{await load(next);if(id){const row=items.find(i=>Number(i.id)===Number(id));if(!row)throw new Error('Item not found.');open(row);}else listDialog.showModal();}catch(e){showError(e);}}
 window.wfeCollections={show};
+document.querySelectorAll('[data-message-action]').forEach(button=>button.onclick=async()=>{
+ if(button.dataset.messageAction==='delete'&&!confirm('Delete this message?'))return;
+ try{const response=await fetch(c.api+'message',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':c.csrf},body:JSON.stringify({id:button.dataset.messageId,operation:button.dataset.messageAction})});const result=await response.json();if(!response.ok)throw new Error(result.error);location.reload();}catch(e){alert(e.message);}
+});
 document.querySelectorAll('[data-manage-collection]').forEach(button=>button.onclick=e=>{e.preventDefault();show(button.dataset.manageCollection);});
 document.querySelectorAll('[data-collection-item]').forEach(node=>{
 node.tabIndex=0;node.setAttribute('aria-label','Edit '+node.dataset.collectionType+' item');

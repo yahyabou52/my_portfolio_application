@@ -12,6 +12,8 @@ await page.locator('#wfe-sections').click();await Promise.all([page.waitForEvent
 await page.locator('#wfe-sections').click();await Promise.all([page.waitForEvent('load'),page.getByRole('button',{name:'Remove about',exact:true}).click()]);
 await page.locator('#wfe-sections').click();await page.locator('#wfe-section-type').selectOption('about');await Promise.all([page.waitForEvent('load'),page.locator('#wfe-add-section').click()]);
 await page.locator('#wfe-sections').click();assert.equal(await page.locator('.wfe-section-row').count(),6);
+await Promise.all([page.waitForEvent('load'),page.getByRole('button',{name:'↑ projects',exact:true}).click()]);await page.locator('#wfe-sections').click();
+await Promise.all([page.waitForEvent('load'),page.getByLabel('projects layout',{exact:true}).selectOption('list')]);await page.locator('#wfe-sections').click();
 await page.locator('#wfe-color').fill('#154877');await Promise.all([page.waitForEvent('load'),page.locator('#wfe-save-theme').click()]);
 assert.equal(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim()),'#154877');
 await visitor.reload();assert.notEqual(await visitor.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim()),'#154877');

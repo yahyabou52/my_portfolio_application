@@ -16,7 +16,7 @@ final class LegacyViewData {
                 $pages[$page['page_key']]=['title'=>$page['title'],'meta_description'=>$page['meta_description']??'','sections'=>$sections];
             }
             $values=[];foreach(Database::getInstance()->getConnection()->query('SELECT setting_key,setting_value FROM site_settings')->fetchAll() as $row)$values[$row['setting_key']]=$row['setting_value'];
-            return ['global'=>$global,'hero'=>$hero,'about'=>$about,'pages'=>$pages,'values'=>$values];
+            return ['hero_stats'=>$repo->getHeroStats(),'global'=>$global,'hero'=>$hero,'about'=>$about,'pages'=>$pages,'values'=>$values];
         }); } catch(PDOException $error) {
             if(!in_array($error->getCode(),['42S02','42S22'],true))throw $error;
             // Sparse legacy sites remain blocked from activation; preserve their raw tables in the export.
@@ -31,6 +31,7 @@ final class LegacyViewData {
             $global['contactSettings']=['contact_email'=>$p['email'],'contact_phone'=>$p['phone'],'contact_address'=>$p['location']];
             $global['socialLinks']=$p['social'];$global['activeServices']=$repo->getActiveServices();
             $hero=$presentation['hero'];$parts=explode(' ',trim($p['name']),2);$hero['hero_intro_name_first']=$parts[0];$hero['hero_intro_name_rest']=$parts[1]??'';$hero['hero_description']=$p['intro'];
+            if(empty($doc['compatibility'])){$hero['hero_title']=$p['profession']?:'Welcome to my portfolio';$hero['hero_background_image_url']=$p['photo']?media_url($p['photo']):asset('images/placeholder.svg');}
             $hero['hero_primary_cta']=['text'=>$hero['hero_primary_cta_text']??'','url'=>navbar_build_nav_url($hero['hero_primary_cta_url']??'')];
             $hero['hero_secondary_cta']=['text'=>$hero['hero_secondary_cta_text']??'','url'=>navbar_build_nav_url($hero['hero_secondary_cta_url']??'')];
             $about=$presentation['about'];$about['bio']=$p['bio'];$about['about_content']=$p['bio'];$about['image_url']=$p['photo']?media_url($p['photo']):asset('images/placeholder.svg');$about['about_image_url']=$about['image_url'];$about['timeline']=$repo->getTimeline();

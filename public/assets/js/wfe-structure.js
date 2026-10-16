@@ -15,6 +15,7 @@ for(const [index,s] of c.sections.entries()){
  }
  const variants=c.variants[s.type]||[];
  if(variants.length>1){const select=document.createElement('select');select.setAttribute('aria-label',s.type+' layout');for(const value of variants){const option=new Option(value,value,value===s.variant,value===s.variant);select.add(option);}select.onchange=()=>apply({id:s.id,operation:'variant',variant:select.value});row.append(select);}
+ if(Object.hasOwn(c.collectionCounts,s.type)&&c.collectionCounts[s.type]===0){const add=document.createElement('button');add.type='button';add.textContent='Add your first '+(s.type==='experience'?'experience item':s.type.replace(/s$/,''));add.onclick=()=>{dialog.close();window.wfeCollections.show(s.type);};row.append(add);}
  list.append(row);
 }
 const add=document.getElementById('wfe-add-section');
