@@ -11,6 +11,7 @@ final class SectionRegistry {
             'contact'=>['component'=>'contact','variants'=>['card','minimal'],'fields'=>['heading'=>'text','button_label'=>'text'],'profile'=>['email','phone','location','social']],
         ];
     }
+    public static function availableVariants(string $type): array { return $type==='projects'?['grid','list']:[self::get($type)['variants'][0]]; }
     public static function get(string $type): array {
         return self::all()[$type] ?? throw new InvalidArgumentException('Unknown section type.');
     }

@@ -5,6 +5,7 @@ require_once ROOT_PATH.'/app/models/Media.php';
 require_once ROOT_PATH.'/app/core/builder/BuilderStore.php';
 require_once ROOT_PATH.'/app/core/builder/SiteRenderer.php';
 require_once ROOT_PATH.'/app/core/builder/EditableFields.php';
+require_once ROOT_PATH.'/app/core/builder/DraftStructure.php';
 final class BuilderController {
     public static function actor(): array {
         $user=(new User())->getCurrentUser();
@@ -48,6 +49,8 @@ final class BuilderController {
                     EditableFields::apply($doc,$id,$value);
                 }
                 $next=$store->saveDraft($actor,$revision,$doc);
+            }elseif($action==='structure'){
+                $doc=$this->document($store->draft($actor));DraftStructure::apply($doc,$input);$next=$store->saveDraft($actor,$revision,$doc);
             }elseif($action==='publish')$next=$store->publish($actor,$revision);
             elseif($action==='discard')$next=$store->discard($actor,$revision);
             else throw new RuntimeException('Unknown editor action.',404);
@@ -69,7 +72,7 @@ final class BuilderController {
                 $types=['about'=>['about','skills','experience'],'contact'=>['contact'],'portfolio'=>['projects'],'services'=>[]][$pageKey];
                 $document['pages'][$pageKey]=['title'=>ucfirst($pageKey).' — '.$document['profile']['name'],'visible'=>true,'sections'=>array_values(array_filter($document['pages']['home']['sections'],fn($s)=>in_array($s['type'],$types,true)))];
             }
-            echo (new SiteRenderer($db))->render($document,$pageKey,$editing,$owner);
+            echo (new SiteRenderer($db))->render($document,$pageKey,$editing,$owner,!isset($_GET['device_preview']));
         }catch(Throwable $e){http_response_code($e->getCode()===404?404:500);error_log($e->getMessage());echo $e->getCode()===404?'Page not found.':'Website could not be loaded.';}
     }
 }

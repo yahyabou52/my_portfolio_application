@@ -50,6 +50,8 @@
     <meta name="twitter:image" content="<?= asset('images/placeholder.svg') ?>">
 <?php $themeValues=WebsiteContent::values(); $primary=$themeValues['primary_color']??'#7B3FE4'; if(!preg_match('/^#[0-9a-fA-F]{6}$/',$primary)){$primary='#7B3FE4';} $rgb=implode(', ',sscanf($primary,'#%02x%02x%02x')); ?>
 <style>:root{--primary-color:<?= $primary ?>;--primary-rgb:<?= $rgb ?>;--primary-dark:color-mix(in srgb, <?= $primary ?>, black 20%);--primary-light:color-mix(in srgb, <?= $primary ?>, white 25%);--bs-primary:<?= $primary ?>;--bs-primary-rgb:<?= $rgb ?>}.btn-primary{--bs-btn-bg:<?= $primary ?>;--bs-btn-border-color:<?= $primary ?>}.text-primary{color:<?= $primary ?>!important}.bg-primary{background-color:<?= $primary ?>!important}<?php foreach(['secondary_color'=>'--text-muted','accent_color'=>'--success-color'] as $key=>$variable): $color=$themeValues[$key]??''; if(preg_match('/^#[0-9a-fA-F]{6}$/',$color)): ?>:root{<?= $variable ?>:<?= $color ?>;}<?php endif; endforeach; ?>
+<?php if(preg_match('/^#[0-9a-fA-F]{6}$/',$themeValues['background_color']??'')): ?>:root{--bg-primary:<?= $themeValues['background_color'] ?>;}<?php endif; ?>
+<?php if(in_array($themeValues['builder_font']??'', ['Inter','Playfair Display'],true)): ?>body{font-family:'<?= $themeValues['builder_font'] ?>',sans-serif;}<?php endif; ?>
 <?= str_replace('<', '\3c ', (string)($themeValues['custom_css'] ?? '')) ?>
 </style>
 </head>
