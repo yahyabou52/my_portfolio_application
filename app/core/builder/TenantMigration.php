@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/SiteDocument.php';
+require_once __DIR__.'/LegacyViewData.php';
 final class TenantMigration {
     public function __construct(private PDO $db,private array $site) {}
     public function tables(): array {
@@ -87,6 +88,7 @@ final class TenantMigration {
         // Complete legacy records remain in their original tables and in the mandatory export.
         // The compatibility record prevents migration from pretending unsupported pages are converted.
         $doc['compatibility']=['legacy_pages'=>array_values(array_diff(array_keys($pages),array_keys($doc['pages']))),'requires_visual_review'=>true,'blocking_reasons'=>['Legacy navigation, footer, custom page labels and non-MVP sections require complete mapping before activation.']];
+        $doc['presentation']=LegacyViewData::capture($this->db);
         return $doc;
     }
     public function owner(): ?int {

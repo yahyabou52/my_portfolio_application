@@ -12,7 +12,7 @@ final class SiteDocument {
         }
         $sections[0]['settings']=['heading'=>'','button_label'=>'Get in touch','button_url'=>'mailto:'.$profile['email']];
         if($profile['email']==='')$sections[0]['settings']['button_url']='';
-        return ['schema_version'=>1,'profile'=>$profile,'theme'=>['color'=>'#275dce','background'=>'#f7f8fa','font'=>'system'],'pages'=>['home'=>['title'=>$name,'visible'=>true,'sections'=>$sections]]];
+        return ['schema_version'=>1,'profile'=>$profile,'theme'=>['color'=>'#7B3FE4','background'=>'#ffffff','font'=>'system'],'pages'=>['home'=>['title'=>$name,'visible'=>true,'sections'=>$sections]]];
     }
     // Relative destinations and anchors are internal routes, never arbitrary URL schemes.
     public static function validUrl(string $url): bool {

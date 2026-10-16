@@ -54,6 +54,10 @@ class Database {
         return self::$instance;
     }
     
+    public static function using(PDO $connection, callable $callback) {
+        $instance=self::getInstance();$previous=$instance->connection;$instance->connection=$connection;
+        try{return $callback();}finally{$instance->connection=$previous;}
+    }
     public function getConnection() {
         return $this->connection;
     }

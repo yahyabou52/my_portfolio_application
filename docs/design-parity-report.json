@@ -1,0 +1,236 @@
+[
+  {
+    "section": "hero",
+    "width": 1440,
+    "legacy": [
+      1440,
+      1160
+    ],
+    "renderer": [
+      1440,
+      1160
+    ],
+    "differentPixels": 0
+  },
+  {
+    "section": "projects",
+    "width": 1440,
+    "legacy": [
+      1440,
+      928
+    ],
+    "renderer": [
+      1440,
+      928
+    ],
+    "differentPixels": 0
+  },
+  {
+    "section": "skills",
+    "width": 1440,
+    "legacy": [
+      1440,
+      674
+    ],
+    "renderer": [
+      1440,
+      674
+    ],
+    "differentPixels": 0
+  },
+  {
+    "section": "about",
+    "width": 1440,
+    "legacy": [
+      1440,
+      429
+    ],
+    "renderer": [
+      1440,
+      429
+    ],
+    "differentPixels": 0
+  },
+  {
+    "section": "experience",
+    "width": 1440,
+    "legacy": [
+      1440,
+      1286
+    ],
+    "renderer": [
+      1440,
+      1286
+    ],
+    "differentPixels": 0
+  },
+  {
+    "section": "contact",
+    "width": 1440,
+    "legacy": [
+      1440,
+      1099
+    ],
+    "renderer": [
+      1440,
+      1099
+    ],
+    "differentPixels": 0
+  },
+  {
+    "section": "hero",
+    "width": 768,
+    "legacy": [
+      768,
+      1244
+    ],
+    "renderer": [
+      768,
+      1244
+    ],
+    "differentPixels": 0
+  },
+  {
+    "section": "projects",
+    "width": 768,
+    "legacy": [
+      768,
+      889
+    ],
+    "renderer": [
+      768,
+      889
+    ],
+    "differentPixels": 0
+  },
+  {
+    "section": "skills",
+    "width": 768,
+    "legacy": [
+      768,
+      991
+    ],
+    "renderer": [
+      768,
+      991
+    ],
+    "differentPixels": 0
+  },
+  {
+    "section": "about",
+    "width": 768,
+    "legacy": [
+      768,
+      757
+    ],
+    "renderer": [
+      768,
+      757
+    ],
+    "differentPixels": 0
+  },
+  {
+    "section": "experience",
+    "width": 768,
+    "legacy": [
+      768,
+      1353
+    ],
+    "renderer": [
+      768,
+      1353
+    ],
+    "differentPixels": 0
+  },
+  {
+    "section": "contact",
+    "width": 768,
+    "legacy": [
+      768,
+      1734
+    ],
+    "renderer": [
+      768,
+      1734
+    ],
+    "differentPixels": 0
+  },
+  {
+    "section": "hero",
+    "width": 390,
+    "legacy": [
+      390,
+      1332
+    ],
+    "renderer": [
+      390,
+      1332
+    ],
+    "differentPixels": 0
+  },
+  {
+    "section": "projects",
+    "width": 390,
+    "legacy": [
+      390,
+      1406
+    ],
+    "renderer": [
+      390,
+      1406
+    ],
+    "differentPixels": 0
+  },
+  {
+    "section": "skills",
+    "width": 390,
+    "legacy": [
+      390,
+      1409
+    ],
+    "renderer": [
+      390,
+      1409
+    ],
+    "differentPixels": 0
+  },
+  {
+    "section": "about",
+    "width": 390,
+    "legacy": [
+      390,
+      866
+    ],
+    "renderer": [
+      390,
+      866
+    ],
+    "differentPixels": 0
+  },
+  {
+    "section": "experience",
+    "width": 390,
+    "legacy": [
+      390,
+      1612
+    ],
+    "renderer": [
+      390,
+      1612
+    ],
+    "differentPixels": 0
+  },
+  {
+    "section": "contact",
+    "width": 390,
+    "legacy": [
+      390,
+      1989
+    ],
+    "renderer": [
+      390,
+      1989
+    ],
+    "differentPixels": 0
+  }
+]

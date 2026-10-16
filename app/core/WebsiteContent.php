@@ -1,6 +1,10 @@
 <?php
 final class WebsiteContent {
     private static ?array $values = null;
+    public static function using(array $values,callable $callback) {
+        $previous=self::$values;self::$values=$values;
+        try{return $callback();}finally{self::$values=$previous;}
+    }
     public static function manifest(): array { return json_decode(file_get_contents(ROOT_PATH . '/config/website-fields.json'), true, 512, JSON_THROW_ON_ERROR); }
     public static function values(): array {
         if (self::$values === null) {

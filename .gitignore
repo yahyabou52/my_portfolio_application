@@ -1,3 +1,7 @@
 .local/
 public/assets/uploads/
 .env
+
+node_modules/
+test-results/
+playwright-report/

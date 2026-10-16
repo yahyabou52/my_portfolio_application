@@ -1,1 +1,0 @@
-<div><p class="eyebrow"><?= $e($settings['heading']??'About') ?></p><h2><?= $e($profile['name']) ?></h2><p class="prose"><?= nl2br($e($profile['bio'])) ?></p></div><?php if($image($profile['photo'])): ?><img class="portrait" src="<?= $e($image($profile['photo'])) ?>" alt="<?= $e($profile['name']) ?>" loading="lazy"><?php endif; ?>

@@ -13,7 +13,7 @@ final class BuilderController {
         try{$store->authorize($actor);$owner=true;}catch(Throwable $e){}
         if($editing&&!$owner){http_response_code(403);echo 'Only the website owner can open the draft.';return;}
         header('Cache-Control: private, no-store');
-        header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: http:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'");
+        
         try{
             $document=$editing?$store->draft($actor):$store->published();
             if(!isset($document['pages'][$pageKey]) && !isset($document['compatibility']) && in_array($pageKey,['about','contact','portfolio','services'],true)) {
