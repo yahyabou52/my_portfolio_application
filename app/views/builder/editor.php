@@ -26,5 +26,6 @@
 </dialog>
 <script src="<?= asset('js/wfe-structure.js') ?>" defer></script>
 <script src="<?= asset('js/wfe-context.js') ?>" defer></script>
+<script src="<?= asset('js/wfe-move.js') ?>" defer></script>
 
 <?php require_once ROOT_PATH.'/app/core/builder/CollectionStore.php';require __DIR__.'/collections.php'; ?>

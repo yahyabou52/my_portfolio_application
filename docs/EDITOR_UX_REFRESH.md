@@ -24,3 +24,8 @@ Hover or focus a section to open its quick controls. Section settings highlights
 Pages provides titles, visibility and navigation to the supported Home, About, Portfolio, Services and Contact editors. For new sites, existing secondary routes can be configured as explicit draft pages. Existing migrated pages are preserved. Home cannot be hidden. All page configuration uses the existing owner/CSRF/revision-checked write endpoint and remains draft until Publish.
 
 Editor surfaces inherit the public site's colors, fonts, border and background tokens, including dark mode. Public markup is unchanged.
+
+## Move blocks
+The on-page Move block handle supports pointer dragging with insertion lines and edge scrolling. Tap/click the handle to place the block before or after another section; arrow keys move it one step. Escape cancels dragging. Blocks remain in responsive document flow, with no free-positioned coordinates.
+
+The owner-checked, revision-checked structure endpoint validates both source and destination section IDs and applies placement in one draft save, including preserved legacy pages. Hidden sections remain in the ordered list. Public ordering changes only after Publish. Browser coverage includes actual dragging, mobile placement, keyboard movement, no navigation and draft isolation.

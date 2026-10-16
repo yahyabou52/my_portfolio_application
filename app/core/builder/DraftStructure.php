@@ -52,6 +52,14 @@ final class DraftStructure {
             elseif($op==='move'){
                 $target=$index+(($input['direction']??'')==='up'?-1:1);
                 if(isset($sections[$target]))[$sections[$index],$sections[$target]]=[$sections[$target],$sections[$index]];
+            }elseif($op==='place'){
+                $targetId=$input['target']??'';
+                if($targetId===$id)throw new InvalidArgumentException('Choose a different target section.');
+                $target=array_search($targetId,array_column($sections,'id'),true);
+                if($target===false||!in_array($input['position']??'', ['before','after'],true))throw new InvalidArgumentException('Invalid section position.');
+                $moving=$sections[$index];array_splice($sections,$index,1);
+                $target=array_search($targetId,array_column($sections,'id'),true);
+                array_splice($sections,$target+($input['position']==='after'?1:0),0,[$moving]);
             }elseif($op==='variant'){
                 $variant=$input['variant']??'';
                 $allowed=SectionRegistry::availableVariants($sections[$index]['type']);

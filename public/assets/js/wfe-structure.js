@@ -10,9 +10,9 @@ document.querySelectorAll('[data-wfe-tab]').forEach(n=>n.onclick=()=>tab(n.datas
 const error=document.getElementById('wfe-structure-error');
 let busy=false;
 async function apply(data){
- if(busy)return;busy=true;error.textContent='Saving changes…';dialog.setAttribute('aria-busy','true');
- try{await window.wfeEditor.flush();await window.wfeEditor.action('structure',{page:c.page,...data});await window.wfeEditor.refresh();}
- catch(e){error.textContent=e.message;}
+ if(busy)return false;busy=true;error.textContent='Saving changes…';dialog.setAttribute('aria-busy','true');
+ try{await window.wfeEditor.flush();await window.wfeEditor.action('structure',{page:c.page,...data});await window.wfeEditor.refresh();return true;}
+ catch(e){error.textContent=e.message;const status=document.getElementById('wfe-status');status.textContent=e.message;status.dataset.error='true';return false;}
  finally{busy=false;dialog.removeAttribute('aria-busy');}
 }
 function renderSections(){const focused=list.contains(document.activeElement)?document.activeElement.getAttribute('aria-label'):null;const scroll=dialog.scrollTop;list.replaceChildren();

@@ -6,7 +6,7 @@ document.body.append(controls);
 let selected=null;
 function model(node){return c.sections.find(s=>s.id===node.dataset.sectionId||s.id===node.dataset.sectionKey||c.sectionKeys[s.type]===node.dataset.sectionKey);}
 function collection(s,node){if(c.collectionTypes.includes(s.type))return s.type;const key=node?.dataset.sectionKey||s.id;return Object.keys(c.sectionKeys).find(t=>c.sectionKeys[t]===key&&c.collectionTypes.includes(t));}
-function button(label,action){const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=action;controls.append(b);}
+function button(label,action){const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=action;controls.append(b);return b;}
 function position(){if(!selected||!selected.node.isConnected){controls.hidden=true;return;}const r=selected.node.getBoundingClientRect();if(r.bottom<30||r.top>innerHeight){controls.hidden=true;return;}controls.hidden=false;controls.style.left=Math.max(8,Math.min(r.left+12,innerWidth-controls.offsetWidth-8))+'px';controls.style.top=Math.max((document.querySelector('.navbar')?.getBoundingClientRect().bottom||72)+8,Math.min(r.top+8,innerHeight-controls.offsetHeight-8))+'px';}
 function settings(s){
  structure.open('sections');
@@ -29,6 +29,7 @@ function settings(s){
 }
 function select(node){const s=model(node);if(!s)return;selected={node,s};controls.replaceChildren();
  const label=document.createElement('span');label.textContent=s.type;controls.append(label);
+ const move=button('Move block',()=>{});move.dataset.wfeMove=s.id;move.title='Drag to move. Click to choose a position, or use the arrow keys.';
  button('Section settings',()=>settings(s));
  const type=collection(s,node);if(type)button('Add / edit '+type,()=>window.wfeCollections.show(type));
  else button('Website details',()=>{location.href=c.api.replace(/editor-api\/$/,'website-settings');});
@@ -36,7 +37,7 @@ function select(node){const s=model(node);if(!s)return;selected={node,s};control
  button('Add section',()=>{structure.open('sections');document.getElementById('wfe-section-type').scrollIntoView({block:'center'});document.getElementById('wfe-section-type').focus();});
  position();
 }
-document.addEventListener('pointerover',e=>{const node=e.target.closest('main section');if(node)select(node);else if(!e.target.closest('.wfe-section-tools'))controls.hidden=true;});
+document.addEventListener('pointerover',e=>{if(window.wfeDragging)return;const node=e.target.closest('main section');if(node)select(node);else if(!e.target.closest('.wfe-section-tools'))controls.hidden=true;});
 document.addEventListener('focusin',e=>{const node=e.target.closest('main section');if(node)select(node);});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')controls.hidden=true;});
 addEventListener('scroll',position,{passive:true});addEventListener('resize',position);
