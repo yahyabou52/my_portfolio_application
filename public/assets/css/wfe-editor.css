@@ -68,3 +68,20 @@
 @media(prefers-reduced-motion:reduce){.wfe-toolbar *,.wfe-dialog *{transition:none!important}}
 
 .wfe-manage-link{color:var(--wfe-accent);font-size:12px;text-decoration:none}.wfe-manage-link:hover{text-decoration:underline}
+
+/* Inherit the portfolio's design system for owner controls. */
+.wfe-toolbar,.wfe-dialog,.wfe-section-tools{--wfe-ink:var(--text-color,#2c3e50);--wfe-muted:var(--text-muted,#6c757d);--wfe-line:var(--border-color,#e9ecef);--wfe-accent:var(--primary-color,#7B3FE4);background:var(--bg-color,#fff);color:var(--wfe-ink);font-family:var(--font-primary,Inter,sans-serif);border-radius:var(--border-radius-lg,1rem)}
+.wfe-dialog input,.wfe-dialog textarea,.wfe-dialog select,.wfe-section-row{background:var(--bg-color,#fff);color:var(--text-color);border-color:var(--border-color)}
+.wfe-dialog h2{font-family:var(--font-display,Georgia,serif);color:var(--text-color)}
+.wfe-dialog input[type=checkbox]{display:inline-block;width:auto;margin-right:8px}
+.wfe-section-tools{position:fixed;z-index:2147482999;display:flex;align-items:center;gap:4px;max-width:calc(100vw - 16px);padding:6px;border:1px solid var(--primary-color);box-shadow:var(--shadow);font:12px/1.5 var(--font-primary);flex-wrap:wrap}
+.wfe-section-tools[hidden]{display:none}
+.wfe-section-tools span{font-weight:600;padding:4px 8px;text-transform:capitalize}
+.wfe-section-tools button{font:inherit;background:var(--bg-secondary);color:var(--text-color);border:1px solid var(--border-color);border-radius:var(--border-radius-sm);padding:8px;cursor:pointer}
+.wfe-section-tools button:hover{background:var(--primary-color);color:#fff}
+.wfe-section-tools button:focus-visible{outline:2px solid var(--primary-color);outline-offset:2px}
+.wfe-section-row.wfe-selected{border-color:var(--primary-color);box-shadow:0 0 0 2px color-mix(in srgb,var(--primary-color),transparent 80%)}
+#wfe-save-page{background:var(--primary-color);color:#fff}
+@media(max-width:600px){.wfe-section-tools{font-size:11px}.wfe-section-tools button{padding:7px}.wfe-tools{flex-wrap:wrap}.wfe-tools button{flex:1}}
+
+@media(max-width:600px){.wfe-section-tools{flex-wrap:nowrap}.wfe-section-tools>span,.wfe-section-tools button:nth-last-child(-n+2){display:none}}

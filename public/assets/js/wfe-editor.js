@@ -50,7 +50,7 @@ async function flush(){
   }finally{inFlight=null;}
  })();await inFlight;if(pending.size)return flush();
 }
-window.wfeEditor={flush,action:async(action,body)=>{for(let attempt=0;;attempt++){try{const result=await request(action,body);revision=result.revision;return result;}catch(e){if(e.status!==429||attempt>=3)throw e;await new Promise(resolve=>setTimeout(resolve,650));}}}};
+window.wfeEditor={flush,setField:change,action:async(action,body)=>{for(let attempt=0;;attempt++){try{const result=await request(action,body);revision=result.revision;return result;}catch(e){if(e.status!==429||attempt>=3)throw e;await new Promise(resolve=>setTimeout(resolve,650));}}}};
 
 let refreshing=null;
 async function refreshCanvas(){

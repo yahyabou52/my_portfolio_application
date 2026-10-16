@@ -13,6 +13,21 @@ final class DraftStructure {
     }
     public static function apply(array &$doc,array $input): void {
         $page=(string)($input['page']??'home');$op=$input['operation']??'';$id=$input['id']??'';
+        if($op==='page'){
+            if(!in_array($page,['home','about','portfolio','services','contact'],true))throw new InvalidArgumentException('Unknown page.');
+            $title=trim((string)($input['title']??''));
+            if($title===''||mb_strlen($title)>160)throw new InvalidArgumentException('Use a page title between 1 and 160 characters.');
+            if(!is_bool($input['visible']??null))throw new InvalidArgumentException('Invalid page visibility.');
+            if($page==='home'&&!$input['visible'])throw new InvalidArgumentException('Your home page must remain visible.');
+            if(!isset($doc['pages'][$page])){
+                if(!empty($doc['compatibility']))throw new InvalidArgumentException('This preserved page is not available.');
+                $types=['about'=>['about','skills','experience'],'portfolio'=>['projects'],'services'=>['services'],'contact'=>['contact']][$page]??[];
+                $sections=[];
+                foreach($types as $i=>$type){$spec=SectionRegistry::get($type);$sections[]=['id'=>$type.'-'.$page,'type'=>$type,'variant'=>$spec['variants'][0],'order'=>$i*10,'visible'=>true,'settings'=>[],'collection'=>$spec['collection']??null];}
+                $doc['pages'][$page]=['title'=>$title,'visible'=>$input['visible'],'sections'=>$sections];
+            }
+            $doc['pages'][$page]['title']=$title;$doc['pages'][$page]['visible']=$input['visible'];return;
+        }
         if($op==='theme'){
             foreach(['primary_color','background_color'] as $key)if(isset($input[$key])){
                 if(!preg_match('/^#[0-9a-fA-F]{6}$/',(string)$input[$key]))throw new InvalidArgumentException('Invalid color.');

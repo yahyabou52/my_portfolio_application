@@ -17,14 +17,14 @@ async function apply(data){
 }
 function renderSections(){const focused=list.contains(document.activeElement)?document.activeElement.getAttribute('aria-label'):null;const scroll=dialog.scrollTop;list.replaceChildren();
 for(const [index,s] of c.sections.entries()){
- const row=document.createElement('div');row.className='wfe-section-row';
+ const row=document.createElement('div');row.className='wfe-section-row';row.dataset.wfeSection=s.id;
  const title=document.createElement('strong');title.textContent=s.type.charAt(0).toUpperCase()+s.type.slice(1);const badge=document.createElement('span');badge.className='wfe-badge';badge.textContent=s.visible?'Visible':'Hidden';row.append(badge);row.append(title);
  for(const [label,data] of [['↑',{operation:'move',direction:'up'}],['↓',{operation:'move',direction:'down'}],[s.visible?'Hide':'Show',{operation:'visibility'}],['Remove',{operation:'remove'}]]){
   const button=document.createElement('button');button.type='button';button.textContent=label;button.setAttribute('aria-label',label+' '+s.type);if((data.direction==='up'&&index===0)||(data.direction==='down'&&index===c.sections.length-1))button.disabled=true;button.onclick=()=>apply({id:s.id,...data});row.append(button);
  }
  const variants=c.variants[s.type]||[];
  if(variants.length>1){const select=document.createElement('select');select.setAttribute('aria-label',s.type+' layout');for(const value of variants){const option=new Option(value,value,value===s.variant,value===s.variant);select.add(option);}select.onchange=()=>apply({id:s.id,operation:'variant',variant:select.value});row.append(select);}
- if(Object.hasOwn(c.collectionCounts,s.type)&&c.collectionCounts[s.type]===0){const add=document.createElement('button');add.type='button';add.textContent='Add your first '+(s.type==='experience'?'experience item':s.type.replace(/s$/,''));add.onclick=()=>{dialog.close();window.wfeCollections.show(s.type);};row.append(add);}
+ if(Object.hasOwn(c.collectionCounts,s.type)){const add=document.createElement('button');add.type='button';add.textContent=(c.collectionCounts[s.type]?'Manage ':'Add your first ')+(s.type==='experience'?'experience item':s.type.replace(/s$/,''));add.onclick=()=>{dialog.close();window.wfeCollections.show(s.type);};row.append(add);}
  list.append(row);
 }
 if(focused){const target=[...list.querySelectorAll('[aria-label]')].find(n=>n.getAttribute('aria-label')===focused);(target||list.querySelector('button:not(:disabled)'))?.focus({preventScroll:true});}dialog.scrollTop=scroll;
@@ -37,5 +37,6 @@ add.onclick=()=>apply({operation:'add',type:document.getElementById('wfe-section
 document.getElementById('wfe-save-theme').onclick=()=>apply({operation:'theme',primary_color:document.getElementById('wfe-color').value,background_color:document.getElementById('wfe-background').value,font:document.getElementById('wfe-font').value});
 const preview=document.getElementById('wfe-preview-dialog'),frame=document.getElementById('wfe-preview-frame');
 document.getElementById('wfe-preview').onclick=async()=>{try{await window.wfeEditor.flush();frame.src=c.preview;preview.showModal();}catch(e){error.textContent=e.message;}};
+window.wfeStructure={open,apply,config:c};
 document.getElementById('wfe-device').onchange=e=>{frame.style.width=e.target.value+'px';};
 })();
