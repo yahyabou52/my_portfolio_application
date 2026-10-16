@@ -7,16 +7,21 @@ ini_set('log_errors', 1);
 /**
  * Database Configuration
  */
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'portfolio_db');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+define('DB_PORT', getenv('DB_PORT') ?: '3306');
+define('PLATFORM_DB', getenv('PLATFORM_DB') ?: 'portfolio_platform');
+define('DB_USER', getenv('DB_USER') ?: 'root');
+define('DB_PASS', getenv('DB_PASS') ?: '');
 
 /**
  * Application Configuration
  */
-define('BASE_URL', 'http://localhost/portfolio-web/public');
+define('PLATFORM_URL', rtrim(getenv('BASE_URL') ?: 'http://localhost/portfolio-web/public', '/'));
 define('ROOT_PATH', __DIR__ . '/..');
+require_once ROOT_PATH . '/app/core/TenantContext.php';
+TenantContext::resolve();
+define('DB_NAME', TenantContext::database());
+define('BASE_URL', PLATFORM_URL . TenantContext::prefix());
 
 /**
  * Database Connection
@@ -28,7 +33,7 @@ class Database {
     private function __construct() {
         try {
             $this->connection = new PDO(
-                "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME,
+                "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4",
                 DB_USER,
                 DB_PASS,
                 [
@@ -62,25 +67,19 @@ function url($path = '') {
 }
 
 function asset($path = '') {
-    return url('assets/' . ltrim($path, '/'));
+    return PLATFORM_URL . '/assets/' . ltrim($path, '/');
 }
 
 function media_url($path = '') {
-    if (!$path) {
-        return '';
-    }
-
-    if (preg_match('#^https?://#i', $path)) {
-        return $path;
-    }
-
+    if (!$path) { return ''; }
+    $path = trim((string)$path);
+    if (preg_match('#^https?://#i', $path)) { return $path; }
     $normalized = ltrim($path, '/');
-
-    if (strpos($normalized, 'assets/') === 0) {
-        return url($normalized);
+    if (!str_starts_with($normalized, 'assets/')) { $normalized = 'assets/' . $normalized; }
+    if (str_contains($normalized, '..') || !is_file(ROOT_PATH . '/public/' . $normalized)) {
+        return asset('images/placeholder.svg');
     }
-
-    return asset($normalized);
+    return PLATFORM_URL . '/' . $normalized;
 }
 
 function navbar_build_nav_url($url) {
@@ -92,6 +91,7 @@ function navbar_build_nav_url($url) {
         return $url;
     }
 
+    if (preg_match('/^[a-z][a-z0-9+.-]*:/i', $url)) { return '#'; }
     return url($url);
 }
 
@@ -107,7 +107,10 @@ function session_start_safe() {
             error_log("Headers already sent in $filename at line $line");
             return false;
         }
+        session_name('portfolio_' . TenantContext::id());
+        session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax', 'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off', 'path' => (parse_url(BASE_URL, PHP_URL_PATH) ?: '/')]);
         session_start();
     }
     return true;
 }
+require_once ROOT_PATH . '/app/core/WebsiteContent.php';

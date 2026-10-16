@@ -6,7 +6,7 @@ $featuredIds = $featured_ids ?? [];
 $normalizeProject = function ($project) {
     $imagePath = $project['main_image_path'] ?? ($project['image_url'] ?? '');
     $imagePath = is_string($imagePath) ? trim($imagePath) : '';
-    $imageUrl = $imagePath !== '' ? media_url($imagePath) : asset('images/projects/default.jpg');
+    $imageUrl = $imagePath !== '' ? media_url($imagePath) : asset('images/placeholder.svg');
 
     return [
         'id' => (int)($project['id'] ?? 0),
@@ -66,7 +66,7 @@ $maxFeatured = 6;
     <div class="row" data-featured-work-manager
          data-featured-projects="<?= $projectsJson ?>"
          data-featured-initial="<?= $featuredJson ?>"
-        data-featured-default-image="<?= asset('images/projects/default.jpg') ?>"
+        data-featured-default-image="<?= asset('images/placeholder.svg') ?>"
          data-featured-min="<?= $minFeatured ?>"
          data-featured-max="<?= $maxFeatured ?>">
         <div class="col-xl-7">

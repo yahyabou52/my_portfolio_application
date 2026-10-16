@@ -14,7 +14,7 @@ $primaryCtaUrl = navbar_build_nav_url($primaryCta['url'] ?? '/portfolio');
 $primaryCtaText = $primaryCta['text'] ?? 'View My Work';
 $secondaryCtaText = $secondaryCta['text'] ?? "Let's Talk";
 $secondaryCtaUrl = navbar_build_nav_url($secondaryCta['url'] ?? '/contact');
-$heroImage = !empty($hero['hero_background_image_url']) ? $hero['hero_background_image_url'] : asset('images/hero-portrait.jpg');
+$heroImage = !empty($hero['hero_background_image_url']) ? $hero['hero_background_image_url'] : asset('images/placeholder.svg');
 $heroImageAlt = $hero['hero_background_image_alt'] ?? 'Hero portrait';
 $heroIntroPrefix = $hero['hero_intro_prefix'] ?? "Hi, I'm";
 $heroIntroNameFirst = $hero['hero_intro_name_first'] ?? '';
@@ -66,7 +66,7 @@ $ctaSecondaryUrl = ($ctaSecondaryText !== '' && $ctaSecondaryUrlRaw !== '')
 ?>
 
 <!-- Hero Section -->
-<section class="hero-section d-flex align-items-center">
+<?php if (WebsiteContent::visible('home.section.hero-section')): ?><section data-section-key="home.section.hero-section" class="hero-section d-flex align-items-center">
     <div class="container">
         <div class="row align-items-center min-vh-100">
             <div class="col-lg-6" data-aos="fade-right">
@@ -108,7 +108,7 @@ $ctaSecondaryUrl = ($ctaSecondaryText !== '' && $ctaSecondaryUrlRaw !== '')
                             <?= htmlspecialchars($secondaryCtaText) ?>
                         </a>
                     </div>
-                    
+
                     <?php if (!empty($heroStats)): ?>
                         <div class="hero-stats mt-5 pt-4 border-top">
                             <div class="row g-3">
@@ -140,7 +140,7 @@ $ctaSecondaryUrl = ($ctaSecondaryText !== '' && $ctaSecondaryUrlRaw !== '')
             </div>
         </div>
     </div>
-    
+
     <!-- Scroll Indicator -->
     <?php if ($scrollIndicatorText !== ''): ?>
         <div class="scroll-indicator">
@@ -150,43 +150,41 @@ $ctaSecondaryUrl = ($ctaSecondaryText !== '' && $ctaSecondaryUrlRaw !== '')
             <p class="scroll-text"><?= htmlspecialchars($scrollIndicatorText) ?></p>
         </div>
     <?php endif; ?>
-</section>
+</section><?php endif; ?>
 
 <!-- Featured Work Section -->
-<section class="featured-work-section py-5">
+<?php if (WebsiteContent::visible('home.section.featured-work-section')): ?><section data-section-key="home.section.featured-work-section" class="featured-work-section py-5">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center" data-aos="fade-up">
-                <h2 class="section-title mb-3">Featured Work</h2>
-                <p class="section-subtitle text-muted mb-5">
-                    Recent projects that highlight my approach to user-centered design and problem-solving.
-                </p>
+                <h2 class="section-title mb-3"><?= site_text('home.text.77ddcd9fd728', 'Featured Work') ?></h2>
+                <p class="section-subtitle text-muted mb-5"><?= site_text('home.text.a1190660ca9f', 'Recent projects that highlight my approach to user-centered design and problem-solving.') ?></p>
             </div>
         </div>
-        
+
         <div class="row">
             <?php if (!empty($featuredProjects)): ?>
                 <?php foreach ($featuredProjects as $index => $project): ?>
                     <?php
-                    $projectImage = $project['main_image_url'] ?? asset('images/projects/default.jpg');
+                    $projectImage = $project['main_image_url'] ?? asset('images/placeholder.svg');
                     $projectUrl = url('portfolio/' . ($project['slug'] ?? $project['id']));
                     $liveUrl = $project['project_url'] ?? '';
                     ?>
                     <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="<?= (int)$index * 100 ?>">
                         <div class="project-card">
                             <div class="project-image">
-                                <img src="<?= htmlspecialchars($projectImage) ?>" 
-                                     alt="<?= htmlspecialchars($project['title'] ?? 'Project') ?>" 
+                                <img src="<?= htmlspecialchars($projectImage) ?>"
+                                     alt="<?= htmlspecialchars($project['title'] ?? 'Project') ?>"
                                      class="img-fluid">
                                 <div class="project-overlay">
                                     <div class="project-actions">
-                                        <a href="<?= htmlspecialchars($projectUrl) ?>" 
+                                        <a href="<?= htmlspecialchars($projectUrl) ?>"
                                            class="btn btn-primary btn-sm">
                                             <i class="bi bi-eye"></i>
                                         </a>
                                         <?php if (!empty($liveUrl)): ?>
-                                            <a href="<?= htmlspecialchars($liveUrl) ?>" 
-                                               class="btn btn-outline-light btn-sm ms-2" 
+                                            <a href="<?= htmlspecialchars($liveUrl) ?>"
+                                               class="btn btn-outline-light btn-sm ms-2"
                                                target="_blank" rel="noopener">
                                                 <i class="bi bi-box-arrow-up-right"></i>
                                             </a>
@@ -227,31 +225,27 @@ $ctaSecondaryUrl = ($ctaSecondaryText !== '' && $ctaSecondaryUrlRaw !== '')
                 <?php endforeach; ?>
             <?php else: ?>
                 <div class="col-12 text-center">
-                    <p class="text-muted">No featured projects available at the moment.</p>
+                    <p class="text-muted"><?= site_text('home.text.b6d30a2161a7', 'No featured projects available at the moment.') ?></p>
                 </div>
             <?php endif; ?>
         </div>
-        
+
         <div class="row mt-4">
             <div class="col-12 text-center" data-aos="fade-up">
                 <a href="<?= url('portfolio') ?>" class="btn btn-outline-primary btn-lg">
-                    <i class="bi bi-grid me-2"></i>
-                    View All Projects
-                </a>
+                    <i class="bi bi-grid me-2"></i><?= site_text('home.text.6e67ae5a1fab', 'View All Projects') ?></a>
             </div>
         </div>
     </div>
-</section>
+</section><?php endif; ?>
 
 <!-- Services Section -->
-<section class="services-section py-5 bg-light">
+<?php if (WebsiteContent::visible('home.section.services-section')): ?><section data-section-key="home.section.services-section" class="services-section py-5 bg-light">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center" data-aos="fade-up">
-                <h2 class="section-title mb-3">Services</h2>
-                <p class="section-subtitle text-muted mb-5">
-                    A selection of services that help teams launch thoughtful, user-first experiences.
-                </p>
+                <h2 class="section-title mb-3"><?= site_text('home.text.5cbd58404686', 'Services') ?></h2>
+                <p class="section-subtitle text-muted mb-5"><?= site_text('home.text.ded14671a2ca', 'A selection of services that help teams launch thoughtful, user-first experiences.') ?></p>
             </div>
         </div>
         <div class="row">
@@ -295,22 +289,20 @@ $ctaSecondaryUrl = ($ctaSecondaryText !== '' && $ctaSecondaryUrlRaw !== '')
                 <?php endforeach; ?>
             <?php else: ?>
                 <div class="col-12 text-center">
-                    <p class="text-muted">Add services from the admin panel to highlight what you offer.</p>
+                    <p class="text-muted"><?= site_text('home.text.77ce42422772', 'Add services from the admin panel to highlight what you offer.') ?></p>
                 </div>
             <?php endif; ?>
         </div>
     </div>
-</section>
+</section><?php endif; ?>
 
 <!-- Skills & Tools Section -->
-<section class="skills-section py-5">
+<?php if (WebsiteContent::visible('home.section.skills-section')): ?><section data-section-key="home.section.skills-section" class="skills-section py-5">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center" data-aos="fade-up">
-                <h2 class="section-title mb-3">Skills &amp; Tools</h2>
-                <p class="section-subtitle text-muted mb-5">
-                    Capabilities and toolsets that keep projects moving fast without compromising quality.
-                </p>
+                <h2 class="section-title mb-3"><?= site_text('home.text.66d1d6edbc75', 'Skills &amp; Tools') ?></h2>
+                <p class="section-subtitle text-muted mb-5"><?= site_text('home.text.acebb479e214', 'Capabilities and toolsets that keep projects moving fast without compromising quality.') ?></p>
             </div>
         </div>
         <div class="row">
@@ -353,22 +345,20 @@ $ctaSecondaryUrl = ($ctaSecondaryText !== '' && $ctaSecondaryUrlRaw !== '')
                 <?php endforeach; ?>
             <?php else: ?>
                 <div class="col-12 text-center">
-                    <p class="text-muted">Keep skills up to date from the admin panel to showcase your expertise.</p>
+                    <p class="text-muted"><?= site_text('home.text.7ead245e2a19', 'Keep skills up to date from the admin panel to showcase your expertise.') ?></p>
                 </div>
             <?php endif; ?>
         </div>
     </div>
-</section>
+</section><?php endif; ?>
 
 <!-- Testimonials Section -->
-<section class="testimonials-section py-5 bg-light">
+<?php if (WebsiteContent::visible('home.section.testimonials-section')): ?><section data-section-key="home.section.testimonials-section" class="testimonials-section py-5 bg-light">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center" data-aos="fade-up">
-                <h2 class="section-title mb-3">What Clients Say</h2>
-                <p class="section-subtitle text-muted mb-5">
-                    Feedback from partners and teams I have collaborated with.
-                </p>
+                <h2 class="section-title mb-3"><?= site_text('home.text.9e1785b699ae', 'What Clients Say') ?></h2>
+                <p class="section-subtitle text-muted mb-5"><?= site_text('home.text.0099de5da3ae', 'Feedback from partners and teams I have collaborated with.') ?></p>
             </div>
         </div>
         <div class="row">
@@ -376,7 +366,7 @@ $ctaSecondaryUrl = ($ctaSecondaryText !== '' && $ctaSecondaryUrlRaw !== '')
                 <?php foreach ($featuredTestimonials as $index => $testimonial): ?>
                     <?php
                     $testimonialText = $testimonial['testimonial_text'] ?? '';
-                    $avatar = !empty($testimonial['image_url']) ? $testimonial['image_url'] : asset('images/testimonials/default-avatar.jpg');
+                    $avatar = !empty($testimonial['image_url']) ? $testimonial['image_url'] : asset('images/placeholder.svg');
                     $rating = (int)($testimonial['rating'] ?? 5);
                     ?>
                     <div class="col-lg-4 mb-4" data-aos="fade-up" data-aos-delay="<?= (int)$index * 100 ?>">
@@ -394,7 +384,7 @@ $ctaSecondaryUrl = ($ctaSecondaryText !== '' && $ctaSecondaryUrlRaw !== '')
                                 </p>
                             </div>
                             <div class="testimonial-author">
-                                <img src="<?= htmlspecialchars($avatar) ?>" alt="<?= htmlspecialchars($testimonial['client_name'] ?? 'Client') ?>" 
+                                <img src="<?= htmlspecialchars($avatar) ?>" alt="<?= htmlspecialchars($testimonial['client_name'] ?? 'Client') ?>"
                                      class="testimonial-avatar">
                                 <div class="author-info">
                                     <h6 class="author-name"><?= htmlspecialchars($testimonial['client_name'] ?? 'Client Name') ?></h6>
@@ -408,15 +398,15 @@ $ctaSecondaryUrl = ($ctaSecondaryText !== '' && $ctaSecondaryUrlRaw !== '')
                 <?php endforeach; ?>
             <?php else: ?>
                 <div class="col-12 text-center">
-                    <p class="text-muted">Collect testimonials in the admin area to build trust on the homepage.</p>
+                    <p class="text-muted"><?= site_text('home.text.675ee2c02bbd', 'Collect testimonials in the admin area to build trust on the homepage.') ?></p>
                 </div>
             <?php endif; ?>
         </div>
     </div>
-</section>
+</section><?php endif; ?>
 
 <!-- CTA Section -->
-<section class="cta-section py-5">
+<?php if (WebsiteContent::visible('home.section.cta-section')): ?><section data-section-key="home.section.cta-section" class="cta-section py-5">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center" data-aos="fade-up">
@@ -441,4 +431,4 @@ $ctaSecondaryUrl = ($ctaSecondaryText !== '' && $ctaSecondaryUrlRaw !== '')
             </div>
         </div>
     </div>
-</section>
+</section><?php endif; ?>

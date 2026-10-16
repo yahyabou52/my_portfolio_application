@@ -19,7 +19,7 @@ class Router {
         $method = $_SERVER['REQUEST_METHOD'];
         
         // Remove base path if running in subdirectory
-        $basePath = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
+        $basePath = rtrim(parse_url(BASE_URL, PHP_URL_PATH) ?: '', '/');
         if ($basePath !== '/' && strpos($uri, $basePath) === 0) {
             $uri = substr($uri, strlen($basePath));
         }

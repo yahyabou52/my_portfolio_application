@@ -19,7 +19,7 @@ $heroStatsPayload = array_map(function ($stat) {
 $heroStatsLimit = 3;
 $heroStatsJson = htmlspecialchars(json_encode($heroStatsPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8');
 
-$heroImageUrl = $heroPreview['hero_background_image_url'] ?? asset('images/hero-portrait.jpg');
+$heroImageUrl = $heroPreview['hero_background_image_url'] ?? asset('images/placeholder.svg');
 $primaryCta = $heroPreview['hero_primary_cta'] ?? [
     'text' => 'View My Work',
     'url' => navbar_build_nav_url('/portfolio')

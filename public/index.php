@@ -8,7 +8,7 @@ ob_start();
 if (php_sapi_name() === 'cli-server') {
     $url  = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     $file = __DIR__ . $url;
-    if (is_file($file)) {
+    if (is_file($file) && strtolower(pathinfo($file, PATHINFO_EXTENSION)) !== 'php') {
         return false;
     }
 }
@@ -16,11 +16,22 @@ if (php_sapi_name() === 'cli-server') {
 // Load configuration (defines ROOT_PATH and helper functions)
 require_once __DIR__ . '/../config/config.php';
 
+// The platform owns root routes; every portfolio lives below /s/{slug}.
+if (!TenantContext::site()) {
+    require_once ROOT_PATH . '/app/controllers/PlatformController.php';
+    $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    $rootPath = rtrim(parse_url(PLATFORM_URL, PHP_URL_PATH) ?: '', '/');
+    if ($rootPath && str_starts_with($path, $rootPath)) { $path = substr($path, strlen($rootPath)); }
+    (new PlatformController())->handle($path ?: '/');
+    exit;
+}
+
 // Autoload core classes (simple require for this small project)
 require_once ROOT_PATH . '/app/core/Router.php';
 
 // Instantiate router and define routes
 $router = new Router();
+$router->get('/admin/website', 'WebsiteController', 'edit')->post('/admin/website', 'WebsiteController', 'save');
 
 $router->get('/', 'HomeController', 'index')
        ->get('/about', 'HomeController', 'about')
@@ -42,7 +53,7 @@ $router->get('/', 'HomeController', 'index')
        ->get('/admin/logout', 'AdminController', 'logout')
        
        // Admin Management routes
-       ->get('/admin/settings', 'AdminManagerController', 'settings')
+       ->get('/admin/settings', 'WebsiteController', 'edit')
        ->post('/admin/settings', 'AdminManagerController', 'updateSettings')
        ->get('/admin/hero', 'AdminManagerController', 'hero')
        ->post('/admin/hero', 'AdminManagerController', 'updateHero')

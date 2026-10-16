@@ -1,40 +1,36 @@
 <!-- Portfolio Header -->
-<section class="portfolio-header py-5 mt-5">
+<?php if (WebsiteContent::visible('portfolio.section.portfolio-header')): ?><section data-section-key="portfolio.section.portfolio-header" class="portfolio-header py-5 mt-5">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center" data-aos="fade-up">
-                <h1 class="portfolio-title mb-4">My Portfolio</h1>
-                <p class="portfolio-subtitle text-muted mb-5">
-                    A collection of my recent work spanning UI/UX design, branding, and digital experiences. 
-                    Each project tells a story of problem-solving and creative solutions.
-                </p>
+                <h1 class="portfolio-title mb-4"><?= site_text('portfolio.text.cbaaecf52331', 'My Portfolio') ?></h1>
+                <p class="portfolio-subtitle text-muted mb-5"><?= site_text('portfolio.text.033c44f22baf', 'A collection of my recent work spanning UI/UX design, branding, and digital experiences.
+                    Each project tells a story of problem-solving and creative solutions.') ?></p>
             </div>
         </div>
-        
+
         <!-- Filter Navigation -->
         <div class="row">
             <div class="col-12">
                 <div class="portfolio-filters text-center mb-5" data-aos="fade-up" data-aos-delay="200">
-                    <a href="<?= url('portfolio') ?>" 
-                       class="filter-btn <?= empty($current_category) && empty($search_query) ? 'active' : '' ?>">
-                        All Projects
-                    </a>
+                    <a href="<?= url('portfolio') ?>"
+                       class="filter-btn <?= empty($current_category) && empty($search_query) ? 'active' : '' ?>"><?= site_text('portfolio.text.bf9f85b4ad58', 'All Projects') ?></a>
                     <?php if (!empty($categories)): ?>
                         <?php foreach ($categories as $category): ?>
-                            <a href="<?= url('portfolio?category=' . urlencode($category)) ?>" 
+                            <a href="<?= url('portfolio?category=' . urlencode($category)) ?>"
                                class="filter-btn <?= $current_category === $category ? 'active' : '' ?>">
                                 <?= htmlspecialchars($category) ?>
                             </a>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </div>
-                
+
                 <!-- Search Bar -->
                 <div class="portfolio-search text-center mb-5" data-aos="fade-up" data-aos-delay="300">
                     <form method="GET" action="<?= url('portfolio') ?>" class="search-form">
                         <div class="input-group mx-auto" style="max-width: 400px;">
-                            <input type="text" class="form-control" name="search" 
-                                   placeholder="Search projects..." 
+                            <input type="text" class="form-control" name="search"
+                                   placeholder="Search projects..."
                                    value="<?= htmlspecialchars($search_query ?? '') ?>">
                             <button class="btn btn-primary" type="submit">
                                 <i class="bi bi-search"></i>
@@ -45,10 +41,10 @@
             </div>
         </div>
     </div>
-</section>
+</section><?php endif; ?>
 
 <!-- Portfolio Grid -->
-<section class="portfolio-grid py-5">
+<?php if (WebsiteContent::visible('portfolio.section.portfolio-grid')): ?><section data-section-key="portfolio.section.portfolio-grid" class="portfolio-grid py-5">
     <div class="container">
         <?php if (!empty($projects)): ?>
             <div class="row">
@@ -56,9 +52,9 @@
                     <div class="col-lg-4 col-md-6 mb-5" data-aos="fade-up" data-aos-delay="<?= (int)$index * 100 ?>">
                         <div class="portfolio-item">
                             <div class="portfolio-image">
-                                <?php $projectImage = !empty($project['main_image_path']) ? media_url($project['main_image_path']) : asset('images/projects/default.jpg'); ?>
-                                <img src="<?= htmlspecialchars($projectImage) ?>" 
-                                     alt="<?= htmlspecialchars($project['title'] ?? 'Project') ?>" 
+                                <?php $projectImage = !empty($project['main_image_path']) ? media_url($project['main_image_path']) : asset('images/placeholder.svg'); ?>
+                                <img src="<?= htmlspecialchars($projectImage) ?>"
+                                     alt="<?= htmlspecialchars($project['title'] ?? 'Project') ?>"
                                      class="img-fluid">
                                 <div class="portfolio-overlay">
                                     <div class="portfolio-info">
@@ -70,14 +66,12 @@
                                         </p>
                                     </div>
                                     <div class="portfolio-actions">
-                                        <a href="<?= url('portfolio/' . ($project['slug'] ?? $project['id'])) ?>" 
+                                        <a href="<?= url('portfolio/' . ($project['slug'] ?? $project['id'])) ?>"
                                            class="btn btn-primary btn-sm">
-                                            <i class="bi bi-eye me-1"></i>
-                                            View Details
-                                        </a>
+                                            <i class="bi bi-eye me-1"></i><?= site_text('portfolio.text.907b3bee2778', 'View Details') ?></a>
                                         <?php if (!empty($project['project_url'])): ?>
-                                            <a href="<?= htmlspecialchars($project['project_url']) ?>" 
-                                               class="btn btn-outline-light btn-sm ms-2" 
+                                            <a href="<?= htmlspecialchars($project['project_url']) ?>"
+                                               class="btn btn-outline-light btn-sm ms-2"
                                                target="_blank">
                                                 <i class="bi bi-box-arrow-up-right"></i>
                                             </a>
@@ -92,8 +86,7 @@
                                     </span>
                                     <?php if (!empty($project['featured'])): ?>
                                         <span class="badge bg-warning-subtle text-warning">
-                                            <i class="bi bi-star-fill me-1"></i>Featured
-                                        </span>
+                                            <i class="bi bi-star-fill me-1"></i><?= site_text('portfolio.text.ae31ad5d6f76', 'Featured') ?></span>
                                     <?php endif; ?>
                                 </div>
                                 <h4 class="portfolio-item-title mb-2">
@@ -113,7 +106,7 @@
                                         </small>
                                     </p>
                                 <?php endif; ?>
-                                
+
                                 <!-- Technologies -->
                                 <?php
                                 $technologies = $project['technologies_list'] ?? null;
@@ -143,7 +136,7 @@
                 <div class="col-12 text-center py-5">
                     <div class="no-results" data-aos="fade-up">
                         <i class="bi bi-search display-1 text-muted mb-3"></i>
-                        <h3 class="text-muted mb-3">No Projects Found</h3>
+                        <h3 class="text-muted mb-3"><?= site_text('portfolio.text.53cf7501c3f0', 'No Projects Found') ?></h3>
                         <p class="text-muted mb-4">
                             <?php if ($search_query): ?>
                                 No projects match your search "<?= htmlspecialchars($search_query) ?>".
@@ -154,37 +147,29 @@
                             <?php endif; ?>
                         </p>
                         <a href="<?= url('portfolio') ?>" class="btn btn-primary">
-                            <i class="bi bi-arrow-left me-2"></i>
-                            View All Projects
-                        </a>
+                            <i class="bi bi-arrow-left me-2"></i><?= site_text('portfolio.text.6e67ae5a1fab', 'View All Projects') ?></a>
                     </div>
                 </div>
             </div>
         <?php endif; ?>
     </div>
-</section>
+</section><?php endif; ?>
 
 <!-- CTA Section -->
-<section class="cta-section py-5 bg-light">
+<?php if (WebsiteContent::visible('portfolio.section.cta-section')): ?><section data-section-key="portfolio.section.cta-section" class="cta-section py-5 bg-light">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center" data-aos="fade-up">
-                <h2 class="cta-title mb-3">Like What You See?</h2>
-                <p class="cta-subtitle text-muted mb-4">
-                    I'd love to hear about your project and discuss how we can work together 
-                    to create something amazing.
-                </p>
+                <h2 class="cta-title mb-3"><?= site_text('portfolio.text.963d0a5be3e7', 'Like What You See?') ?></h2>
+                <p class="cta-subtitle text-muted mb-4"><?= site_text('portfolio.text.bbc903f69dfb', 'I\'d love to hear about your project and discuss how we can work together
+                    to create something amazing.') ?></p>
                 <div class="cta-actions">
                     <a href="<?= url('contact') ?>" class="btn btn-primary btn-lg me-3">
-                        <i class="bi bi-envelope me-2"></i>
-                        Start a Project
-                    </a>
+                        <i class="bi bi-envelope me-2"></i><?= site_text('portfolio.text.551a973d8234', 'Start a Project') ?></a>
                     <a href="<?= url('services') ?>" class="btn btn-outline-primary btn-lg">
-                        <i class="bi bi-list-check me-2"></i>
-                        View Services
-                    </a>
+                        <i class="bi bi-list-check me-2"></i><?= site_text('portfolio.text.5d5b3e81fcb8', 'View Services') ?></a>
                 </div>
             </div>
         </div>
     </div>
-</section>
+</section><?php endif; ?>

@@ -77,7 +77,7 @@ class ContentRepository {
         $favicon = $this->settings['favicon_path'] ?? null;
 
         return [
-            'site_title' => $this->settings['site_title'] ?? 'Yahya Bouhafs',
+            'site_title' => $this->settings['site_title'] ?? 'Your portfolio',
             'site_tagline' => $this->settings['site_tagline'] ?? '',
             'site_description' => $this->settings['site_description'] ?? '',
             'nav_cta_text' => $this->settings['nav_cta_text'] ?? "Let's Talk",
@@ -98,7 +98,9 @@ class ContentRepository {
     private function buildFooterSettings(): array {
         return [
             'footer_text' => $this->settings['footer_text'] ?? '',
-            'footer_links' => $this->siteSettingModel->getFooterLinks()
+            'footer_links' => $this->siteSettingModel->getFooterLinks(),
+            'footer_show_social' => (WebsiteContent::values()['footer_show_social'] ?? '1') !== '0',
+            'footer_additional_text' => WebsiteContent::values()['footer_additional_text'] ?? ''
         ];
     }
 
@@ -129,6 +131,13 @@ class ContentRepository {
 
         $tree = [];
         foreach ($items as $item) {
+            $link=(string)($item['url']??'');
+            if (!preg_match('#^https?://#i',$link)) {
+                $key=trim(parse_url($link,PHP_URL_PATH)??'', '/');
+                if($key===''||$key==='home')$key='home';
+                $target=$this->pageModel->getByKey($key);
+                if($target&&empty($target['is_active']))continue;
+            }
             $item['children'] = $this->buildNavigationTree($item['id']);
             $tree[] = $item;
         }
@@ -172,8 +181,8 @@ class ContentRepository {
 
         $defaults = [
             'hero_intro_prefix' => "Hi, I'm",
-            'hero_intro_name_first' => 'Yahya',
-            'hero_intro_name_rest' => 'Bouhafs',
+            'hero_intro_name_first' => '',
+            'hero_intro_name_rest' => '',
             'hero_intro_suffix' => '- UI/UX Designer',
             'hero_title' => 'Product-Focused UI/UX Designer',
             'hero_subtitle' => 'Crafting delightful journeys for modern digital products',
@@ -183,7 +192,7 @@ class ContentRepository {
             'hero_secondary_cta_text' => "Let's Collaborate",
             'hero_secondary_cta_url' => '/contact',
             'hero_background_image_path' => '',
-            'hero_background_image_alt' => 'Portrait of Yahya Bouhafs',
+            'hero_background_image_alt' => 'Portfolio cover',
             'scroll_indicator_text' => 'Scroll to explore'
         ];
 
@@ -251,7 +260,7 @@ class ContentRepository {
             }
         }
 
-        $aboutImageUrl = $aboutImagePath ? media_url($aboutImagePath) : asset('images/about-photo.jpg');
+        $aboutImageUrl = $aboutImagePath ? media_url($aboutImagePath) : asset('images/placeholder.svg');
 
         $greeting = trim((string)($sections['about_greeting'] ?? $sections['about_subtitle'] ?? ''));
         $headline = trim((string)($sections['about_headline'] ?? $sections['about_title'] ?? ($page['title'] ?? 'About Me')));
@@ -360,7 +369,7 @@ class ContentRepository {
         }
 
         return array_map(function ($project) {
-            $project['main_image_url'] = $project['main_image_path'] ? media_url($project['main_image_path']) : asset('images/projects/default.jpg');
+            $project['main_image_url'] = $project['main_image_path'] ? media_url($project['main_image_path']) : asset('images/placeholder.svg');
             $project['technologies_list'] = $this->projectModel->getTechnologies($project['id']);
             return $project;
         }, $projects);
@@ -383,7 +392,7 @@ class ContentRepository {
         }
 
         return array_map(function ($testimonial) {
-            $testimonial['image_url'] = $testimonial['image_path'] ? media_url($testimonial['image_path']) : asset('images/testimonials/default-avatar.jpg');
+            $testimonial['image_url'] = $testimonial['image_path'] ? media_url($testimonial['image_path']) : asset('images/placeholder.svg');
             return $testimonial;
         }, $testimonials);
     }

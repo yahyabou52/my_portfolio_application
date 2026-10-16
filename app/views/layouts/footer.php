@@ -60,7 +60,7 @@ if (!empty($footerSettings['footer_links']) && is_array($footerSettings['footer_
 }
 ?>
 
-<footer class="footer bg-dark">
+<?php if (WebsiteContent::visible('footer.section.footer')): ?><footer class="footer bg-dark">
     <div class="container">
         <!-- Main Footer Content -->
         <div class="row py-5">
@@ -93,42 +93,36 @@ if (!empty($footerSettings['footer_links']) && is_array($footerSettings['footer_
                     </div>
                 <?php endif; ?>
             </div>
-            
+
             <!-- Quick Links -->
             <div class="col-lg-2 col-md-6 mb-4 mb-lg-0">
-                <h6 class="footer-title mb-3">Quick Links</h6>
+                <h6 class="footer-title mb-3"><?= site_text('footer.text.917bcf00a5f4', 'Quick Links') ?></h6>
                 <ul class="footer-links">
                     <?php if (!empty($navigationMenu)): ?>
                         <?php foreach (array_slice($navigationMenu, 0, 6) as $item): ?>
                             <li><a href="<?= htmlspecialchars(navbar_build_nav_url($item['url'] ?? '#')) ?>" target="<?= htmlspecialchars($item['target'] ?? '_self') ?>"><?= htmlspecialchars($item['title'] ?? 'Link') ?></a></li>
                         <?php endforeach; ?>
-                    <?php else: ?>
-                        <li><a href="<?= url() ?>">Home</a></li>
-                        <li><a href="<?= url('about') ?>">About</a></li>
-                        <li><a href="<?= url('portfolio') ?>">Portfolio</a></li>
-                        <li><a href="<?= url('services') ?>">Services</a></li>
-                        <li><a href="<?= url('contact') ?>">Contact</a></li>
-                    <?php endif; ?>
+<?php endif; ?>
                 </ul>
             </div>
-            
+
             <!-- Services -->
             <div class="col-lg-3 col-md-6 mb-4 mb-lg-0">
-                <h6 class="footer-title mb-3">Services</h6>
+                <h6 class="footer-title mb-3"><?= site_text('footer.text.5cbd58404686', 'Services') ?></h6>
                 <ul class="footer-links">
                     <?php if (!empty($activeServices)): ?>
                         <?php foreach (array_slice($activeServices, 0, 6) as $service): ?>
                             <li><a href="<?= url('services') ?>#service-<?= htmlspecialchars($service['id']) ?>"><?= htmlspecialchars($service['title'] ?? 'Service') ?></a></li>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <li><a href="<?= url('services') ?>">Explore Services</a></li>
+                        <li><a href="<?= url('services') ?>"><?= site_text('footer.text.830d359a713d', 'Explore Services') ?></a></li>
                     <?php endif; ?>
                 </ul>
             </div>
-            
+
             <!-- Contact Info -->
             <div class="col-lg-3 col-md-6">
-                <h6 class="footer-title mb-3">Get In Touch</h6>
+                <h6 class="footer-title mb-3"><?= site_text('footer.text.26e00b08d068', 'Get In Touch') ?></h6>
                 <div class="contact-info">
                     <?php if ($contactEmail): ?>
                         <div class="contact-item mb-2">
@@ -150,12 +144,12 @@ if (!empty($footerSettings['footer_links']) && is_array($footerSettings['footer_
                     <?php endif; ?>
                     <a href="<?= url('contact') ?>" class="btn btn-outline-primary btn-sm">
                         <i class="bi bi-chat-dots me-1"></i>
-                        <?= htmlspecialchars($footerSettings['footer_cta_text'] ?? 'Start a Project') ?>
+                        <?= site_text('footer.text.cta','Start a Project') ?>
                     </a>
                 </div>
             </div>
         </div>
-        
+
         <!-- Footer Bottom -->
         <div class="footer-bottom py-3 border-top border-secondary">
             <div class="row align-items-center">
@@ -168,17 +162,14 @@ if (!empty($footerSettings['footer_links']) && is_array($footerSettings['footer_
                     <div class="footer-links-inline">
                         <?php if (!empty($footerLinks)): ?>
                             <?php foreach ($footerLinks as $link): ?>
-                                <a href="<?= htmlspecialchars($link['url']) ?>" class="text-muted me-3" target="<?= htmlspecialchars($link['target'] ?? '_self') ?>">
+                                <a href="<?= htmlspecialchars(navbar_build_nav_url($link['url'])) ?>" class="text-muted me-3" target="<?= htmlspecialchars($link['target'] ?? '_self') ?>">
                                     <?= htmlspecialchars($link['label']) ?>
                                 </a>
                             <?php endforeach; ?>
-                        <?php else: ?>
-                            <a href="<?= url('privacy') ?>" class="text-muted me-3">Privacy Policy</a>
-                            <a href="<?= url('terms') ?>" class="text-muted">Terms of Service</a>
-                        <?php endif; ?>
+<?php endif; ?>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</footer>
+<?php if (!empty($footerSettings['footer_additional_text'])): ?><div class="container pb-3"><small><?= htmlspecialchars($footerSettings['footer_additional_text']) ?></small></div><?php endif; ?></footer><?php endif; ?>

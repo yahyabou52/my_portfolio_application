@@ -12,7 +12,7 @@ $imageAltValue = $aboutForm['about_image_alt'] ?? 'Portrait';
 $timelineTitleValue = $aboutForm['timeline_title'] ?? 'Experience & Education';
 $timelineSubtitleValue = $aboutForm['timeline_subtitle'] ?? '';
 
-$previewImageUrl = $aboutPreview['image_url'] ?? asset('images/about-photo.jpg');
+$previewImageUrl = $aboutPreview['image_url'] ?? asset('images/placeholder.svg');
 $previewImageAlt = $aboutPreview['image_alt'] ?? 'About portrait';
 $previewGreeting = $aboutPreview['greeting'] ?? '';
 $previewHeadline = $aboutPreview['headline'] ?? 'About Me';

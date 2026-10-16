@@ -1,10 +1,12 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="light">
+<html lang="en" data-site-id="<?= TenantContext::id() ?>" data-dark-mode="<?= (WebsiteContent::values()['dark_mode_enabled'] ?? '1') === '0' ? '0' : '1' ?>" data-bs-theme="<?= htmlspecialchars((new SiteSetting())->getSettings()['theme_default'] ?? 'light') ?>">
 <head>
+    <meta name="csrf-token" content="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
+    <script src="<?= asset('js/site-session.js') ?>"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $title ?? 'UI/UX Designer Portfolio' ?></title>
-    <meta name="description" content="<?= $meta_description ?? 'Creative UI/UX Designer specializing in user-centered design, mobile apps, and web interfaces.' ?>">
+    <title><?= htmlspecialchars($title ?? 'Portfolio', ENT_QUOTES, 'UTF-8') ?></title>
+    <meta name="description" content="<?= htmlspecialchars($meta_description ?? '', ENT_QUOTES, 'UTF-8') ?>">
     
     <!-- Content Security Policy -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://fonts.googleapis.com https://ajax.googleapis.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: https:; connect-src 'self' https:;"><?php
@@ -26,26 +28,30 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- AOS Animation Library -->
-    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.css" rel="stylesheet">
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="<?= asset('css/style.css') ?>">
     
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="<?= !empty($siteSettings['favicon']) ? htmlspecialchars($siteSettings['favicon']) : asset('images/favicon.ico') ?>">
+    <link rel="icon" type="image/x-icon" href="<?= !empty($siteSettings['favicon']) ? htmlspecialchars($siteSettings['favicon']) : asset('images/placeholder.svg') ?>">
     
     <!-- Open Graph Meta Tags -->
     <meta property="og:title" content="<?= $title ?? 'UI/UX Designer Portfolio' ?>">
     <meta property="og:description" content="<?= $meta_description ?? 'Creative UI/UX Designer specializing in user-centered design, mobile apps, and web interfaces.' ?>">
     <meta property="og:type" content="website">
     <meta property="og:url" content="<?= url() ?>">
-    <meta property="og:image" content="<?= asset('images/og-image.jpg') ?>">
+    <meta property="og:image" content="<?= asset('images/placeholder.svg') ?>">
     
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="<?= $title ?? 'UI/UX Designer Portfolio' ?>">
     <meta name="twitter:description" content="<?= $meta_description ?? 'Creative UI/UX Designer specializing in user-centered design, mobile apps, and web interfaces.' ?>">
-    <meta name="twitter:image" content="<?= asset('images/og-image.jpg') ?>">
+    <meta name="twitter:image" content="<?= asset('images/placeholder.svg') ?>">
+<?php $themeValues=WebsiteContent::values(); $primary=$themeValues['primary_color']??'#7B3FE4'; if(!preg_match('/^#[0-9a-fA-F]{6}$/',$primary)){$primary='#7B3FE4';} $rgb=implode(', ',sscanf($primary,'#%02x%02x%02x')); ?>
+<style>:root{--primary-color:<?= $primary ?>;--primary-rgb:<?= $rgb ?>;--primary-dark:color-mix(in srgb, <?= $primary ?>, black 20%);--primary-light:color-mix(in srgb, <?= $primary ?>, white 25%);--bs-primary:<?= $primary ?>;--bs-primary-rgb:<?= $rgb ?>}.btn-primary{--bs-btn-bg:<?= $primary ?>;--bs-btn-border-color:<?= $primary ?>}.text-primary{color:<?= $primary ?>!important}.bg-primary{background-color:<?= $primary ?>!important}<?php foreach(['secondary_color'=>'--text-muted','accent_color'=>'--success-color'] as $key=>$variable): $color=$themeValues[$key]??''; if(preg_match('/^#[0-9a-fA-F]{6}$/',$color)): ?>:root{<?= $variable ?>:<?= $color ?>;}<?php endif; endforeach; ?>
+<?= str_replace('<', '\3c ', (string)($themeValues['custom_css'] ?? '')) ?>
+</style>
 </head>
 <body>
     <!-- Navigation -->
@@ -68,14 +74,14 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- AOS Animation JS -->
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.js"></script>
     
     <!-- Custom JavaScript -->
     <script src="<?= asset('js/app.js') ?>"></script>
     
     <!-- Initialize AOS -->
     <script>
-        AOS.init({
+        if (window.AOS) AOS.init({
             duration: 800,
             easing: 'ease-in-out',
             once: true,

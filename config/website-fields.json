@@ -1,0 +1,1597 @@
+{
+  "home.section.hero-section": {
+    "group": "home",
+    "type": "visibility",
+    "label": "hero section",
+    "default": "1"
+  },
+  "home.section.hero-section.order": {
+    "group": "home",
+    "type": "order",
+    "label": "hero section position",
+    "default": "10"
+  },
+  "home.text.77ddcd9fd728": {
+    "group": "home",
+    "type": "text",
+    "label": "Featured Work",
+    "default": "Featured Work",
+    "section": "home.section.featured-work-section",
+    "role": "Section heading"
+  },
+  "home.text.a1190660ca9f": {
+    "group": "home",
+    "type": "text",
+    "label": "Recent projects that highlight my approach to user-centered design and problem-solving.",
+    "default": "Recent projects that highlight my approach to user-centered design and problem-solving.",
+    "section": "home.section.featured-work-section",
+    "role": "Description"
+  },
+  "home.section.featured-work-section": {
+    "group": "home",
+    "type": "visibility",
+    "label": "featured work section",
+    "default": "1"
+  },
+  "home.section.featured-work-section.order": {
+    "group": "home",
+    "type": "order",
+    "label": "featured work section position",
+    "default": "20"
+  },
+  "home.text.b6d30a2161a7": {
+    "group": "home",
+    "type": "text",
+    "label": "No featured projects available at the moment.",
+    "default": "No featured projects available at the moment.",
+    "section": "home.section.featured-work-section",
+    "role": "Description"
+  },
+  "home.text.6e67ae5a1fab": {
+    "group": "home",
+    "type": "text",
+    "label": "View All Projects",
+    "default": "View All Projects",
+    "section": "home.section.featured-work-section",
+    "role": "Link label"
+  },
+  "home.text.5cbd58404686": {
+    "group": "home",
+    "type": "text",
+    "label": "Services",
+    "default": "Services",
+    "section": "home.section.services-section",
+    "role": "Section heading"
+  },
+  "home.text.ded14671a2ca": {
+    "group": "home",
+    "type": "text",
+    "label": "A selection of services that help teams launch thoughtful, user-first experiences.",
+    "default": "A selection of services that help teams launch thoughtful, user-first experiences.",
+    "section": "home.section.services-section",
+    "role": "Description"
+  },
+  "home.section.services-section": {
+    "group": "home",
+    "type": "visibility",
+    "label": "services section",
+    "default": "1"
+  },
+  "home.section.services-section.order": {
+    "group": "home",
+    "type": "order",
+    "label": "services section position",
+    "default": "30"
+  },
+  "home.text.77ce42422772": {
+    "group": "home",
+    "type": "text",
+    "label": "Add services from the admin panel to highlight what you offer.",
+    "default": "Add services from the admin panel to highlight what you offer.",
+    "section": "home.section.services-section",
+    "role": "Description"
+  },
+  "home.text.66d1d6edbc75": {
+    "group": "home",
+    "type": "text",
+    "label": "Skills &amp; Tools",
+    "default": "Skills &amp; Tools",
+    "section": "home.section.skills-section",
+    "role": "Section heading"
+  },
+  "home.text.acebb479e214": {
+    "group": "home",
+    "type": "text",
+    "label": "Capabilities and toolsets that keep projects moving fast without compromising quality.",
+    "default": "Capabilities and toolsets that keep projects moving fast without compromising quality.",
+    "section": "home.section.skills-section",
+    "role": "Description"
+  },
+  "home.section.skills-section": {
+    "group": "home",
+    "type": "visibility",
+    "label": "skills section",
+    "default": "1"
+  },
+  "home.section.skills-section.order": {
+    "group": "home",
+    "type": "order",
+    "label": "skills section position",
+    "default": "40"
+  },
+  "home.text.7ead245e2a19": {
+    "group": "home",
+    "type": "text",
+    "label": "Keep skills up to date from the admin panel to showcase your expertise.",
+    "default": "Keep skills up to date from the admin panel to showcase your expertise.",
+    "section": "home.section.skills-section",
+    "role": "Description"
+  },
+  "home.text.9e1785b699ae": {
+    "group": "home",
+    "type": "text",
+    "label": "What Clients Say",
+    "default": "What Clients Say",
+    "section": "home.section.testimonials-section",
+    "role": "Section heading"
+  },
+  "home.text.0099de5da3ae": {
+    "group": "home",
+    "type": "text",
+    "label": "Feedback from partners and teams I have collaborated with.",
+    "default": "Feedback from partners and teams I have collaborated with.",
+    "section": "home.section.testimonials-section",
+    "role": "Description"
+  },
+  "home.section.testimonials-section": {
+    "group": "home",
+    "type": "visibility",
+    "label": "testimonials section",
+    "default": "1"
+  },
+  "home.section.testimonials-section.order": {
+    "group": "home",
+    "type": "order",
+    "label": "testimonials section position",
+    "default": "50"
+  },
+  "home.text.675ee2c02bbd": {
+    "group": "home",
+    "type": "text",
+    "label": "Collect testimonials in the admin area to build trust on the homepage.",
+    "default": "Collect testimonials in the admin area to build trust on the homepage.",
+    "section": "home.section.testimonials-section",
+    "role": "Description"
+  },
+  "home.section.cta-section": {
+    "group": "home",
+    "type": "visibility",
+    "label": "cta section",
+    "default": "1"
+  },
+  "home.section.cta-section.order": {
+    "group": "home",
+    "type": "order",
+    "label": "cta section position",
+    "default": "60"
+  },
+  "about.section.about-hero": {
+    "group": "about",
+    "type": "visibility",
+    "label": "about hero",
+    "default": "1"
+  },
+  "about.section.about-hero.order": {
+    "group": "about",
+    "type": "order",
+    "label": "about hero position",
+    "default": "10"
+  },
+  "about.section.experience-section": {
+    "group": "about",
+    "type": "visibility",
+    "label": "experience section",
+    "default": "1"
+  },
+  "about.section.experience-section.order": {
+    "group": "about",
+    "type": "order",
+    "label": "experience section position",
+    "default": "20"
+  },
+  "about.text.4521a4f05dbe": {
+    "group": "about",
+    "type": "text",
+    "label": "No timeline entries yet. Add milestones in the admin",
+    "default": "No timeline entries yet. Add milestones in the admin",
+    "section": "about.section.experience-section",
+    "role": "Description"
+  },
+  "about.text.018514a3d58a": {
+    "group": "about",
+    "type": "text",
+    "label": "Timeline",
+    "default": "Timeline",
+    "section": "about.section.experience-section",
+    "role": "Link label"
+  },
+  "about.text.76faaac560c0": {
+    "group": "about",
+    "type": "text",
+    "label": "to display them here.",
+    "default": "to display them here.",
+    "section": "about.section.experience-section",
+    "role": "Link label"
+  },
+  "about.text.caba7908b133": {
+    "group": "about",
+    "type": "text",
+    "label": "Skills &amp; Expertise",
+    "default": "Skills &amp; Expertise",
+    "section": "about.section.skills-detail-section",
+    "role": "Section heading"
+  },
+  "about.text.882712d4231a": {
+    "group": "about",
+    "type": "text",
+    "label": "A breakdown of the capabilities, tools, and disciplines I practice every day.",
+    "default": "A breakdown of the capabilities, tools, and disciplines I practice every day.",
+    "section": "about.section.skills-detail-section",
+    "role": "Description"
+  },
+  "about.section.skills-detail-section": {
+    "group": "about",
+    "type": "visibility",
+    "label": "skills detail section",
+    "default": "1"
+  },
+  "about.section.skills-detail-section.order": {
+    "group": "about",
+    "type": "order",
+    "label": "skills detail section position",
+    "default": "30"
+  },
+  "about.text.9e1785b699ae": {
+    "group": "about",
+    "type": "text",
+    "label": "What Clients Say",
+    "default": "What Clients Say",
+    "section": "about.section.testimonials-section",
+    "role": "Section heading"
+  },
+  "about.text.36b50b6b9154": {
+    "group": "about",
+    "type": "text",
+    "label": "Insights from clients and teams I've partnered with.",
+    "default": "Insights from clients and teams I've partnered with.",
+    "section": "about.section.testimonials-section",
+    "role": "Description"
+  },
+  "about.section.testimonials-section": {
+    "group": "about",
+    "type": "visibility",
+    "label": "testimonials section",
+    "default": "1"
+  },
+  "about.section.testimonials-section.order": {
+    "group": "about",
+    "type": "order",
+    "label": "testimonials section position",
+    "default": "40"
+  },
+  "about.text.28e7ac9a04dd": {
+    "group": "about",
+    "type": "text",
+    "label": "Let's Work Together",
+    "default": "Let's Work Together",
+    "section": "about.section.cta-section",
+    "role": "Section heading"
+  },
+  "about.text.c951eb5bdcb3": {
+    "group": "about",
+    "type": "text",
+    "label": "I'm always excited to take on new challenges and help bring ideas to life.",
+    "default": "I'm always excited to take on new challenges and help bring ideas to life.",
+    "section": "about.section.cta-section",
+    "role": "Description"
+  },
+  "about.section.cta-section": {
+    "group": "about",
+    "type": "visibility",
+    "label": "cta section",
+    "default": "1"
+  },
+  "about.section.cta-section.order": {
+    "group": "about",
+    "type": "order",
+    "label": "cta section position",
+    "default": "50"
+  },
+  "about.text.26e00b08d068": {
+    "group": "about",
+    "type": "text",
+    "label": "Get In Touch",
+    "default": "Get In Touch",
+    "section": "about.section.cta-section",
+    "role": "Link label"
+  },
+  "about.text.0259cb7a9856": {
+    "group": "about",
+    "type": "text",
+    "label": "View Portfolio",
+    "default": "View Portfolio",
+    "section": "about.section.cta-section",
+    "role": "Link label"
+  },
+  "services.section.services-hero": {
+    "group": "services",
+    "type": "visibility",
+    "label": "services hero",
+    "default": "1"
+  },
+  "services.section.services-hero.order": {
+    "group": "services",
+    "type": "order",
+    "label": "services hero position",
+    "default": "10"
+  },
+  "services.section.main-services": {
+    "group": "services",
+    "type": "visibility",
+    "label": "main services",
+    "default": "1"
+  },
+  "services.section.main-services.order": {
+    "group": "services",
+    "type": "order",
+    "label": "main services position",
+    "default": "20"
+  },
+  "services.text.766464fdf698": {
+    "group": "services",
+    "type": "text",
+    "label": "Services coming soon",
+    "default": "Services coming soon",
+    "section": "services.section.main-services",
+    "role": "Heading"
+  },
+  "services.text.8e4ffbfa214d": {
+    "group": "services",
+    "type": "text",
+    "label": "Add services in the admin dashboard to showcase your areas of expertise.",
+    "default": "Add services in the admin dashboard to showcase your areas of expertise.",
+    "section": "services.section.main-services",
+    "role": "Description"
+  },
+  "services.text.f2cc5a40be6d": {
+    "group": "services",
+    "type": "text",
+    "label": "Start a project",
+    "default": "Start a project",
+    "section": "services.section.main-services",
+    "role": "Link label"
+  },
+  "services.section.process-section": {
+    "group": "services",
+    "type": "visibility",
+    "label": "process section",
+    "default": "1"
+  },
+  "services.section.process-section.order": {
+    "group": "services",
+    "type": "order",
+    "label": "process section position",
+    "default": "30"
+  },
+  "services.text.2dc9c02fb03d": {
+    "group": "services",
+    "type": "text",
+    "label": "Process outline coming soon",
+    "default": "Process outline coming soon",
+    "section": "services.section.process-section",
+    "role": "Heading"
+  },
+  "services.text.25643a66ff7a": {
+    "group": "services",
+    "type": "text",
+    "label": "Document your discovery, research, design, and delivery steps to help clients understand how you col",
+    "default": "Document your discovery, research, design, and delivery steps to help clients understand how you collaborate.",
+    "section": "services.section.process-section",
+    "role": "Description"
+  },
+  "services.section.packages-section": {
+    "group": "services",
+    "type": "visibility",
+    "label": "packages section",
+    "default": "1"
+  },
+  "services.section.packages-section.order": {
+    "group": "services",
+    "type": "order",
+    "label": "packages section position",
+    "default": "40"
+  },
+  "services.text.4847bc70c124": {
+    "group": "services",
+    "type": "text",
+    "label": "Packages coming soon",
+    "default": "Packages coming soon",
+    "section": "services.section.packages-section",
+    "role": "Heading"
+  },
+  "services.text.9c9aacd0bfe3": {
+    "group": "services",
+    "type": "text",
+    "label": "Define pricing tiers to help clients quickly understand how they can engage with you.",
+    "default": "Define pricing tiers to help clients quickly understand how they can engage with you.",
+    "section": "services.section.packages-section",
+    "role": "Description"
+  },
+  "services.section.faq-section": {
+    "group": "services",
+    "type": "visibility",
+    "label": "faq section",
+    "default": "1"
+  },
+  "services.section.faq-section.order": {
+    "group": "services",
+    "type": "order",
+    "label": "faq section position",
+    "default": "50"
+  },
+  "services.text.32964ebb75e4": {
+    "group": "services",
+    "type": "text",
+    "label": "FAQ coming soon",
+    "default": "FAQ coming soon",
+    "section": "services.section.faq-section",
+    "role": "Heading"
+  },
+  "services.text.5a626ac0fa0a": {
+    "group": "services",
+    "type": "text",
+    "label": "Collect common client questions to set expectations about communication, deliverables, and timelines",
+    "default": "Collect common client questions to set expectations about communication, deliverables, and timelines.",
+    "section": "services.section.faq-section",
+    "role": "Description"
+  },
+  "services.section.services-extra-content": {
+    "group": "services",
+    "type": "visibility",
+    "label": "services extra content",
+    "default": "1"
+  },
+  "services.section.services-extra-content.order": {
+    "group": "services",
+    "type": "order",
+    "label": "services extra content position",
+    "default": "60"
+  },
+  "services.text.9e1785b699ae": {
+    "group": "services",
+    "type": "text",
+    "label": "What Clients Say",
+    "default": "What Clients Say",
+    "section": "services.section.testimonials-section",
+    "role": "Section heading"
+  },
+  "services.text.aa870dc2da12": {
+    "group": "services",
+    "type": "text",
+    "label": "Teams trust the collaborative, research-driven approach I bring to every engagement.",
+    "default": "Teams trust the collaborative, research-driven approach I bring to every engagement.",
+    "section": "services.section.testimonials-section",
+    "role": "Description"
+  },
+  "services.section.testimonials-section": {
+    "group": "services",
+    "type": "visibility",
+    "label": "testimonials section",
+    "default": "1"
+  },
+  "services.section.testimonials-section.order": {
+    "group": "services",
+    "type": "order",
+    "label": "testimonials section position",
+    "default": "70"
+  },
+  "services.text.019b6092ae82": {
+    "group": "services",
+    "type": "text",
+    "label": "Ready to Get Started?",
+    "default": "Ready to Get Started?",
+    "section": "services.section.cta-section",
+    "role": "Section heading"
+  },
+  "services.text.672f65ef093f": {
+    "group": "services",
+    "type": "text",
+    "label": "Let's discuss your project and how I can help you create an exceptional user experience.",
+    "default": "Let's discuss your project and how I can help you create an exceptional user experience.",
+    "section": "services.section.cta-section",
+    "role": "Description"
+  },
+  "services.section.cta-section": {
+    "group": "services",
+    "type": "visibility",
+    "label": "cta section",
+    "default": "1"
+  },
+  "services.section.cta-section.order": {
+    "group": "services",
+    "type": "order",
+    "label": "cta section position",
+    "default": "80"
+  },
+  "services.text.1e7f94de99ff": {
+    "group": "services",
+    "type": "text",
+    "label": "Start Your Project",
+    "default": "Start Your Project",
+    "section": "services.section.cta-section",
+    "role": "Link label"
+  },
+  "services.text.eeab5301df0a": {
+    "group": "services",
+    "type": "text",
+    "label": "View My Work",
+    "default": "View My Work",
+    "section": "services.section.cta-section",
+    "role": "Link label"
+  },
+  "portfolio.text.cbaaecf52331": {
+    "group": "portfolio",
+    "type": "text",
+    "label": "My Portfolio",
+    "default": "My Portfolio",
+    "section": "portfolio.section.portfolio-header",
+    "role": "Page heading"
+  },
+  "portfolio.text.033c44f22baf": {
+    "group": "portfolio",
+    "type": "text",
+    "label": "A collection of my recent work spanning UI/UX design, branding, and digital experiences. Each projec",
+    "default": "A collection of my recent work spanning UI/UX design, branding, and digital experiences. \r\n                    Each project tells a story of problem-solving and creative solutions.",
+    "section": "portfolio.section.portfolio-header",
+    "role": "Description"
+  },
+  "portfolio.section.portfolio-header": {
+    "group": "portfolio",
+    "type": "visibility",
+    "label": "portfolio header",
+    "default": "1"
+  },
+  "portfolio.section.portfolio-header.order": {
+    "group": "portfolio",
+    "type": "order",
+    "label": "portfolio header position",
+    "default": "10"
+  },
+  "portfolio.text.bf9f85b4ad58": {
+    "group": "portfolio",
+    "type": "text",
+    "label": "All Projects",
+    "default": "All Projects",
+    "section": "portfolio.section.portfolio-header",
+    "role": "Link label"
+  },
+  "portfolio.section.portfolio-grid": {
+    "group": "portfolio",
+    "type": "visibility",
+    "label": "portfolio grid",
+    "default": "1"
+  },
+  "portfolio.section.portfolio-grid.order": {
+    "group": "portfolio",
+    "type": "order",
+    "label": "portfolio grid position",
+    "default": "20"
+  },
+  "portfolio.text.907b3bee2778": {
+    "group": "portfolio",
+    "type": "text",
+    "label": "View Details",
+    "default": "View Details",
+    "section": "portfolio.section.portfolio-grid",
+    "role": "Text"
+  },
+  "portfolio.text.ae31ad5d6f76": {
+    "group": "portfolio",
+    "type": "text",
+    "label": "Featured",
+    "default": "Featured",
+    "section": "portfolio.section.portfolio-grid",
+    "role": "Text"
+  },
+  "portfolio.text.53cf7501c3f0": {
+    "group": "portfolio",
+    "type": "text",
+    "label": "No Projects Found",
+    "default": "No Projects Found",
+    "section": "portfolio.section.portfolio-grid",
+    "role": "Heading"
+  },
+  "portfolio.text.6e67ae5a1fab": {
+    "group": "portfolio",
+    "type": "text",
+    "label": "View All Projects",
+    "default": "View All Projects",
+    "section": "portfolio.section.portfolio-grid",
+    "role": "Link label"
+  },
+  "portfolio.text.963d0a5be3e7": {
+    "group": "portfolio",
+    "type": "text",
+    "label": "Like What You See?",
+    "default": "Like What You See?",
+    "section": "portfolio.section.cta-section",
+    "role": "Section heading"
+  },
+  "portfolio.text.bbc903f69dfb": {
+    "group": "portfolio",
+    "type": "text",
+    "label": "I'd love to hear about your project and discuss how we can work together to create something amazing",
+    "default": "I'd love to hear about your project and discuss how we can work together \r\n                    to create something amazing.",
+    "section": "portfolio.section.cta-section",
+    "role": "Description"
+  },
+  "portfolio.section.cta-section": {
+    "group": "portfolio",
+    "type": "visibility",
+    "label": "cta section",
+    "default": "1"
+  },
+  "portfolio.section.cta-section.order": {
+    "group": "portfolio",
+    "type": "order",
+    "label": "cta section position",
+    "default": "30"
+  },
+  "portfolio.text.551a973d8234": {
+    "group": "portfolio",
+    "type": "text",
+    "label": "Start a Project",
+    "default": "Start a Project",
+    "section": "portfolio.section.cta-section",
+    "role": "Link label"
+  },
+  "portfolio.text.5d5b3e81fcb8": {
+    "group": "portfolio",
+    "type": "text",
+    "label": "View Services",
+    "default": "View Services",
+    "section": "portfolio.section.cta-section",
+    "role": "Link label"
+  },
+  "project.section.project-header": {
+    "group": "project",
+    "type": "visibility",
+    "label": "project header",
+    "default": "1"
+  },
+  "project.section.project-header.order": {
+    "group": "project",
+    "type": "order",
+    "label": "project header position",
+    "default": "10"
+  },
+  "project.text.ae8178ba2fd2": {
+    "group": "project",
+    "type": "text",
+    "label": "Back to Portfolio",
+    "default": "Back to Portfolio",
+    "section": "project.section.project-header",
+    "role": "Link label"
+  },
+  "project.text.c9f9ea1b026f": {
+    "group": "project",
+    "type": "text",
+    "label": "Client:",
+    "default": "Client:",
+    "section": "shared",
+    "role": "Text"
+  },
+  "project.text.4e1a1fae2c04": {
+    "group": "project",
+    "type": "text",
+    "label": "Year:",
+    "default": "Year:",
+    "section": "shared",
+    "role": "Text"
+  },
+  "project.text.501515852399": {
+    "group": "project",
+    "type": "text",
+    "label": "View Live Project",
+    "default": "View Live Project",
+    "section": "project.section.project-header",
+    "role": "Text"
+  },
+  "project.section.project-hero-image": {
+    "group": "project",
+    "type": "visibility",
+    "label": "project hero image",
+    "default": "1"
+  },
+  "project.section.project-hero-image.order": {
+    "group": "project",
+    "type": "order",
+    "label": "project hero image position",
+    "default": "20"
+  },
+  "project.section.project-details": {
+    "group": "project",
+    "type": "visibility",
+    "label": "project details",
+    "default": "1"
+  },
+  "project.section.project-details.order": {
+    "group": "project",
+    "type": "order",
+    "label": "project details position",
+    "default": "30"
+  },
+  "project.text.22f9526cf805": {
+    "group": "project",
+    "type": "text",
+    "label": "Project Overview",
+    "default": "Project Overview",
+    "section": "project.section.project-details",
+    "role": "Section heading"
+  },
+  "project.text.2ebd99b624af": {
+    "group": "project",
+    "type": "text",
+    "label": "The Challenge",
+    "default": "The Challenge",
+    "section": "project.section.project-details",
+    "role": "Heading"
+  },
+  "project.text.84f0e4cf67ea": {
+    "group": "project",
+    "type": "text",
+    "label": "Every project begins with understanding the core challenges and opportunities. This project required",
+    "default": "Every project begins with understanding the core challenges and opportunities. \r\n                        This project required balancing user needs with business objectives while \r\n                        maintaining technical feasibility and design excellence.",
+    "section": "project.section.project-details",
+    "role": "Description"
+  },
+  "project.text.ecf5cafd8375": {
+    "group": "project",
+    "type": "text",
+    "label": "Our Solution",
+    "default": "Our Solution",
+    "section": "project.section.project-details",
+    "role": "Heading"
+  },
+  "project.text.63b5ed4026b3": {
+    "group": "project",
+    "type": "text",
+    "label": "Through careful research and iterative design, we developed a solution that addresses user pain poin",
+    "default": "Through careful research and iterative design, we developed a solution that \r\n                        addresses user pain points while exceeding business goals. The final design \r\n                        demonstrates how thoughtful UX can drive both user satisfaction and business success.",
+    "section": "project.section.project-details",
+    "role": "Description"
+  },
+  "project.text.cfcd852a99f1": {
+    "group": "project",
+    "type": "text",
+    "label": "Design Process",
+    "default": "Design Process",
+    "section": "project.section.project-details",
+    "role": "Heading"
+  },
+  "project.text.33d9069577ce": {
+    "group": "project",
+    "type": "text",
+    "label": "Research & Discovery",
+    "default": "Research & Discovery",
+    "section": "project.section.project-details",
+    "role": "Heading"
+  },
+  "project.text.05b95d41ae1b": {
+    "group": "project",
+    "type": "text",
+    "label": "Understanding user needs and business requirements",
+    "default": "Understanding user needs and business requirements",
+    "section": "project.section.project-details",
+    "role": "Description"
+  },
+  "project.text.0d20bc5ef2d0": {
+    "group": "project",
+    "type": "text",
+    "label": "Ideation & Wireframing",
+    "default": "Ideation & Wireframing",
+    "section": "project.section.project-details",
+    "role": "Heading"
+  },
+  "project.text.777319506daa": {
+    "group": "project",
+    "type": "text",
+    "label": "Exploring solutions and creating low-fidelity prototypes",
+    "default": "Exploring solutions and creating low-fidelity prototypes",
+    "section": "project.section.project-details",
+    "role": "Description"
+  },
+  "project.text.7fbe9c0e0a2b": {
+    "group": "project",
+    "type": "text",
+    "label": "Visual Design",
+    "default": "Visual Design",
+    "section": "project.section.project-details",
+    "role": "Heading"
+  },
+  "project.text.f27b68cdfe71": {
+    "group": "project",
+    "type": "text",
+    "label": "Developing the visual identity and high-fidelity designs",
+    "default": "Developing the visual identity and high-fidelity designs",
+    "section": "project.section.project-details",
+    "role": "Description"
+  },
+  "project.text.32f168168016": {
+    "group": "project",
+    "type": "text",
+    "label": "Testing & Iteration",
+    "default": "Testing & Iteration",
+    "section": "project.section.project-details",
+    "role": "Heading"
+  },
+  "project.text.f311189db21a": {
+    "group": "project",
+    "type": "text",
+    "label": "Validating designs with users and refining based on feedback",
+    "default": "Validating designs with users and refining based on feedback",
+    "section": "project.section.project-details",
+    "role": "Description"
+  },
+  "project.text.61dae7d0c9b4": {
+    "group": "project",
+    "type": "text",
+    "label": "Technologies Used",
+    "default": "Technologies Used",
+    "section": "project.section.project-details",
+    "role": "Heading"
+  },
+  "project.text.5a940d08f6d5": {
+    "group": "project",
+    "type": "text",
+    "label": "Project Details",
+    "default": "Project Details",
+    "section": "project.section.project-details",
+    "role": "Heading"
+  },
+  "project.text.61b9204fa30a": {
+    "group": "project",
+    "type": "text",
+    "label": "Category:",
+    "default": "Category:",
+    "section": "project.section.project-details",
+    "role": "Text"
+  },
+  "project.text.fdba12561b9a": {
+    "group": "project",
+    "type": "text",
+    "label": "Website:",
+    "default": "Website:",
+    "section": "project.section.project-details",
+    "role": "Text"
+  },
+  "project.text.e1d839835205": {
+    "group": "project",
+    "type": "text",
+    "label": "View Live",
+    "default": "View Live",
+    "section": "project.section.project-details",
+    "role": "Link label"
+  },
+  "project.text.ee98b820facf": {
+    "group": "project",
+    "type": "text",
+    "label": "Share This Project",
+    "default": "Share This Project",
+    "section": "project.section.project-details",
+    "role": "Heading"
+  },
+  "project.text.0b1e359a6f62": {
+    "group": "project",
+    "type": "text",
+    "label": "Project Gallery",
+    "default": "Project Gallery",
+    "section": "project.section.project-gallery",
+    "role": "Section heading"
+  },
+  "project.text.49d05da6b3da": {
+    "group": "project",
+    "type": "text",
+    "label": "Additional views and details from the project",
+    "default": "Additional views and details from the project",
+    "section": "project.section.project-gallery",
+    "role": "Description"
+  },
+  "project.section.project-gallery": {
+    "group": "project",
+    "type": "visibility",
+    "label": "project gallery",
+    "default": "1"
+  },
+  "project.section.project-gallery.order": {
+    "group": "project",
+    "type": "order",
+    "label": "project gallery position",
+    "default": "40"
+  },
+  "project.text.4a5d2c69df1a": {
+    "group": "project",
+    "type": "text",
+    "label": "Results & Impact",
+    "default": "Results & Impact",
+    "section": "project.section.project-results",
+    "role": "Section heading"
+  },
+  "project.text.8040c26e01fb": {
+    "group": "project",
+    "type": "text",
+    "label": "The impact of thoughtful design on user experience and business metrics",
+    "default": "The impact of thoughtful design on user experience and business metrics",
+    "section": "project.section.project-results",
+    "role": "Description"
+  },
+  "project.text.132b6543f0a8": {
+    "group": "project",
+    "type": "text",
+    "label": "Increase in User Engagement",
+    "default": "Increase in User Engagement",
+    "section": "project.section.project-results",
+    "role": "Heading"
+  },
+  "project.text.2758e0f55cf3": {
+    "group": "project",
+    "type": "text",
+    "label": "Users spent significantly more time interacting with the redesigned interface",
+    "default": "Users spent significantly more time interacting with the redesigned interface",
+    "section": "project.section.project-results",
+    "role": "Description"
+  },
+  "project.text.a65550b0cefc": {
+    "group": "project",
+    "type": "text",
+    "label": "Conversion Rate Improvement",
+    "default": "Conversion Rate Improvement",
+    "section": "project.section.project-results",
+    "role": "Heading"
+  },
+  "project.text.91542e3841d3": {
+    "group": "project",
+    "type": "text",
+    "label": "Streamlined user flows led to higher conversion rates across key metrics",
+    "default": "Streamlined user flows led to higher conversion rates across key metrics",
+    "section": "project.section.project-results",
+    "role": "Description"
+  },
+  "project.text.62697e2ae882": {
+    "group": "project",
+    "type": "text",
+    "label": "Reduction in Support Issues",
+    "default": "Reduction in Support Issues",
+    "section": "project.section.project-results",
+    "role": "Heading"
+  },
+  "project.text.f7af4df6de88": {
+    "group": "project",
+    "type": "text",
+    "label": "Improved usability significantly reduced customer support inquiries",
+    "default": "Improved usability significantly reduced customer support inquiries",
+    "section": "project.section.project-results",
+    "role": "Description"
+  },
+  "project.section.project-results": {
+    "group": "project",
+    "type": "visibility",
+    "label": "project results",
+    "default": "1"
+  },
+  "project.section.project-results.order": {
+    "group": "project",
+    "type": "order",
+    "label": "project results position",
+    "default": "50"
+  },
+  "project.section.project-navigation": {
+    "group": "project",
+    "type": "visibility",
+    "label": "project navigation",
+    "default": "1"
+  },
+  "project.section.project-navigation.order": {
+    "group": "project",
+    "type": "order",
+    "label": "project navigation position",
+    "default": "60"
+  },
+  "project.text.812522554160": {
+    "group": "project",
+    "type": "text",
+    "label": "Previous Project",
+    "default": "Previous Project",
+    "section": "project.section.project-navigation",
+    "role": "Text"
+  },
+  "project.text.04768ec978a2": {
+    "group": "project",
+    "type": "text",
+    "label": "Next Project",
+    "default": "Next Project",
+    "section": "project.section.project-navigation",
+    "role": "Text"
+  },
+  "project.text.8310862f018a": {
+    "group": "project",
+    "type": "text",
+    "label": "Interested in Working Together?",
+    "default": "Interested in Working Together?",
+    "section": "project.section.cta-section",
+    "role": "Section heading"
+  },
+  "project.text.2290cf88fb9b": {
+    "group": "project",
+    "type": "text",
+    "label": "I'd love to hear about your project and discuss how we can create something amazing together.",
+    "default": "I'd love to hear about your project and discuss how we can create something amazing together.",
+    "section": "project.section.cta-section",
+    "role": "Description"
+  },
+  "project.section.cta-section": {
+    "group": "project",
+    "type": "visibility",
+    "label": "cta section",
+    "default": "1"
+  },
+  "project.section.cta-section.order": {
+    "group": "project",
+    "type": "order",
+    "label": "cta section position",
+    "default": "70"
+  },
+  "project.text.551a973d8234": {
+    "group": "project",
+    "type": "text",
+    "label": "Start a Project",
+    "default": "Start a Project",
+    "section": "project.section.cta-section",
+    "role": "Link label"
+  },
+  "project.text.507c1da0e5d9": {
+    "group": "project",
+    "type": "text",
+    "label": "View More Work",
+    "default": "View More Work",
+    "section": "project.section.cta-section",
+    "role": "Link label"
+  },
+  "contact.text.28e7ac9a04dd": {
+    "group": "contact",
+    "type": "text",
+    "label": "Let's Work Together",
+    "default": "Let's Work Together",
+    "section": "contact.section.contact-header",
+    "role": "Page heading"
+  },
+  "contact.text.ec3ea0a029e2": {
+    "group": "contact",
+    "type": "text",
+    "label": "I'm always excited to take on new challenges and help bring ideas to life. Whether you have a projec",
+    "default": "I'm always excited to take on new challenges and help bring ideas to life. \r\n                    Whether you have a project in mind or just want to chat about design, \r\n                    I'd love to hear from you.",
+    "section": "contact.section.contact-header",
+    "role": "Description"
+  },
+  "contact.section.contact-header": {
+    "group": "contact",
+    "type": "visibility",
+    "label": "contact header",
+    "default": "1"
+  },
+  "contact.section.contact-header.order": {
+    "group": "contact",
+    "type": "order",
+    "label": "contact header position",
+    "default": "10"
+  },
+  "contact.section.contact-content": {
+    "group": "contact",
+    "type": "visibility",
+    "label": "contact content",
+    "default": "1"
+  },
+  "contact.section.contact-content.order": {
+    "group": "contact",
+    "type": "order",
+    "label": "contact content position",
+    "default": "20"
+  },
+  "contact.text.9841c4c43c70": {
+    "group": "contact",
+    "type": "text",
+    "label": "Send Me a Message",
+    "default": "Send Me a Message",
+    "section": "contact.section.contact-content",
+    "role": "Section heading"
+  },
+  "contact.text.60e93b1b3bfd": {
+    "group": "contact",
+    "type": "text",
+    "label": "Your Name *",
+    "default": "Your Name *",
+    "section": "contact.section.contact-content",
+    "role": "Form label"
+  },
+  "contact.text.ff92ba7e8f35": {
+    "group": "contact",
+    "type": "text",
+    "label": "Email Address *",
+    "default": "Email Address *",
+    "section": "contact.section.contact-content",
+    "role": "Form label"
+  },
+  "contact.text.e7c6a032ad15": {
+    "group": "contact",
+    "type": "text",
+    "label": "Subject *",
+    "default": "Subject *",
+    "section": "contact.section.contact-content",
+    "role": "Form label"
+  },
+  "contact.text.8addb891254a": {
+    "group": "contact",
+    "type": "text",
+    "label": "Message *",
+    "default": "Message *",
+    "section": "contact.section.contact-content",
+    "role": "Form label"
+  },
+  "contact.text.6dcd151222c0": {
+    "group": "contact",
+    "type": "text",
+    "label": "Send Message",
+    "default": "Send Message",
+    "section": "shared",
+    "role": "Button label"
+  },
+  "contact.text.26e00b08d068": {
+    "group": "contact",
+    "type": "text",
+    "label": "Get In Touch",
+    "default": "Get In Touch",
+    "section": "contact.section.contact-content",
+    "role": "Heading"
+  },
+  "contact.text.84add5b29527": {
+    "group": "contact",
+    "type": "text",
+    "label": "Email",
+    "default": "Email",
+    "section": "contact.section.contact-content",
+    "role": "Heading"
+  },
+  "contact.text.f0633a0c503f": {
+    "group": "contact",
+    "type": "text",
+    "label": "I typically respond within 24 hours",
+    "default": "I typically respond within 24 hours",
+    "section": "contact.section.contact-content",
+    "role": "Supporting text"
+  },
+  "contact.text.77064d526523": {
+    "group": "contact",
+    "type": "text",
+    "label": "Phone",
+    "default": "Phone",
+    "section": "contact.section.contact-content",
+    "role": "Heading"
+  },
+  "contact.text.6b618217ab15": {
+    "group": "contact",
+    "type": "text",
+    "label": "Available Mon-Fri, 9AM-6PM PST",
+    "default": "Available Mon-Fri, 9AM-6PM PST",
+    "section": "contact.section.contact-content",
+    "role": "Supporting text"
+  },
+  "contact.text.d219c68101f5": {
+    "group": "contact",
+    "type": "text",
+    "label": "Location",
+    "default": "Location",
+    "section": "contact.section.contact-content",
+    "role": "Heading"
+  },
+  "contact.text.3b501e11dd10": {
+    "group": "contact",
+    "type": "text",
+    "label": "Open to remote work worldwide",
+    "default": "Open to remote work worldwide",
+    "section": "contact.section.contact-content",
+    "role": "Supporting text"
+  },
+  "contact.text.468d566ab6bc": {
+    "group": "contact",
+    "type": "text",
+    "label": "Follow Me",
+    "default": "Follow Me",
+    "section": "contact.section.contact-content",
+    "role": "Heading"
+  },
+  "contact.text.01aec4c6c96b": {
+    "group": "contact",
+    "type": "text",
+    "label": "Average Response Time",
+    "default": "Average Response Time",
+    "section": "contact.section.contact-content",
+    "role": "Heading"
+  },
+  "contact.text.5fdc37d3b84c": {
+    "group": "contact",
+    "type": "text",
+    "label": "Within 24 hours",
+    "default": "Within 24 hours",
+    "section": "contact.section.contact-content",
+    "role": "Description"
+  },
+  "contact.text.681b5b5ae10b": {
+    "group": "contact",
+    "type": "text",
+    "label": "Availability",
+    "default": "Availability",
+    "section": "contact.section.contact-content",
+    "role": "Heading"
+  },
+  "contact.text.0ca993eab5e7": {
+    "group": "contact",
+    "type": "text",
+    "label": "Currently accepting new projects",
+    "default": "Currently accepting new projects",
+    "section": "contact.section.contact-content",
+    "role": "Description"
+  },
+  "contact.text.d790b402d79a": {
+    "group": "contact",
+    "type": "text",
+    "label": "Frequently Asked Questions",
+    "default": "Frequently Asked Questions",
+    "section": "contact.section.contact-faq",
+    "role": "Section heading"
+  },
+  "contact.text.ef4885ab9743": {
+    "group": "contact",
+    "type": "text",
+    "label": "Here are answers to some common questions about working together.",
+    "default": "Here are answers to some common questions about working together.",
+    "section": "contact.section.contact-faq",
+    "role": "Description"
+  },
+  "contact.text.03e3412958e6": {
+    "group": "contact",
+    "type": "text",
+    "label": "What information should I include in my project inquiry?",
+    "default": "What information should I include in my project inquiry?",
+    "section": "contact.section.contact-faq",
+    "role": "Button label"
+  },
+  "contact.text.162e4b49dedd": {
+    "group": "contact",
+    "type": "text",
+    "label": "Please include details about your project goals, target audience, timeline, budget range, and any sp",
+    "default": "Please include details about your project goals, target audience, timeline, \r\n                                budget range, and any specific requirements or preferences. The more information \r\n                                you provide, the better I can understand your needs and provide an accurate proposal.",
+    "section": "contact.section.contact-faq",
+    "role": "Text"
+  },
+  "contact.text.c9b0053a27c9": {
+    "group": "contact",
+    "type": "text",
+    "label": "What's your typical project timeline?",
+    "default": "What's your typical project timeline?",
+    "section": "contact.section.contact-faq",
+    "role": "Button label"
+  },
+  "contact.text.38a6a973246e": {
+    "group": "contact",
+    "type": "text",
+    "label": "Project timelines vary based on scope and complexity. Simple projects may take 1-2 weeks, while comp",
+    "default": "Project timelines vary based on scope and complexity. Simple projects may take \r\n                                1-2 weeks, while comprehensive design systems or complex applications can take \r\n                                4-8 weeks. I'll provide a detailed timeline during our initial consultation.",
+    "section": "contact.section.contact-faq",
+    "role": "Text"
+  },
+  "contact.text.56e3110de4af": {
+    "group": "contact",
+    "type": "text",
+    "label": "Do you work with clients remotely?",
+    "default": "Do you work with clients remotely?",
+    "section": "contact.section.contact-faq",
+    "role": "Button label"
+  },
+  "contact.text.c8a2b7b4813c": {
+    "group": "contact",
+    "type": "text",
+    "label": "Yes, I work with clients worldwide. I use various collaboration tools like Figma, Slack, Zoom, and p",
+    "default": "Yes, I work with clients worldwide. I use various collaboration tools like \r\n                                Figma, Slack, Zoom, and project management platforms to ensure smooth \r\n                                communication and project delivery regardless of location.",
+    "section": "contact.section.contact-faq",
+    "role": "Text"
+  },
+  "contact.text.9aeae533bb68": {
+    "group": "contact",
+    "type": "text",
+    "label": "What's your payment structure?",
+    "default": "What's your payment structure?",
+    "section": "contact.section.contact-faq",
+    "role": "Button label"
+  },
+  "contact.text.31b120bb82df": {
+    "group": "contact",
+    "type": "text",
+    "label": "I typically work with a 50% upfront payment and 50% upon completion for smaller projects. For larger",
+    "default": "I typically work with a 50% upfront payment and 50% upon completion for smaller \r\n                                projects. For larger projects, we can arrange milestone-based payments. \r\n                                All payment terms will be clearly outlined in the project proposal.",
+    "section": "contact.section.contact-faq",
+    "role": "Text"
+  },
+  "contact.section.contact-faq": {
+    "group": "contact",
+    "type": "visibility",
+    "label": "contact faq",
+    "default": "1"
+  },
+  "contact.section.contact-faq.order": {
+    "group": "contact",
+    "type": "order",
+    "label": "contact faq position",
+    "default": "30"
+  },
+  "contact.text.7aaff76b03b8": {
+    "group": "contact",
+    "type": "text",
+    "label": "Ready to Start Your Project?",
+    "default": "Ready to Start Your Project?",
+    "section": "contact.section.cta-section",
+    "role": "Section heading"
+  },
+  "contact.text.1ffe8ae1e28d": {
+    "group": "contact",
+    "type": "text",
+    "label": "Don't hesitate to reach out. I'm here to help bring your ideas to life and create exceptional user e",
+    "default": "Don't hesitate to reach out. I'm here to help bring your ideas to life \r\n                    and create exceptional user experiences.",
+    "section": "contact.section.cta-section",
+    "role": "Description"
+  },
+  "contact.section.cta-section": {
+    "group": "contact",
+    "type": "visibility",
+    "label": "cta section",
+    "default": "1"
+  },
+  "contact.section.cta-section.order": {
+    "group": "contact",
+    "type": "order",
+    "label": "cta section position",
+    "default": "40"
+  },
+  "contact.text.eeab5301df0a": {
+    "group": "contact",
+    "type": "text",
+    "label": "View My Work",
+    "default": "View My Work",
+    "section": "contact.section.cta-section",
+    "role": "Link label"
+  },
+  "navigation.text.70f8bb9a8a53": {
+    "group": "navigation",
+    "type": "text",
+    "label": "Home",
+    "default": "Home",
+    "section": "shared",
+    "role": "Link label",
+    "fallbackOnly": true
+  },
+  "navigation.text.6b21fb791ac0": {
+    "group": "navigation",
+    "type": "text",
+    "label": "About",
+    "default": "About",
+    "section": "shared",
+    "role": "Link label",
+    "fallbackOnly": true
+  },
+  "navigation.text.036b18f02ab5": {
+    "group": "navigation",
+    "type": "text",
+    "label": "Portfolio",
+    "default": "Portfolio",
+    "section": "shared",
+    "role": "Link label",
+    "fallbackOnly": true
+  },
+  "navigation.text.5cbd58404686": {
+    "group": "navigation",
+    "type": "text",
+    "label": "Services",
+    "default": "Services",
+    "section": "shared",
+    "role": "Link label",
+    "fallbackOnly": true
+  },
+  "navigation.text.b37456c4530b": {
+    "group": "navigation",
+    "type": "text",
+    "label": "Contact",
+    "default": "Contact",
+    "section": "shared",
+    "role": "Link label",
+    "fallbackOnly": true
+  },
+  "footer.text.917bcf00a5f4": {
+    "group": "footer",
+    "type": "text",
+    "label": "Quick Links",
+    "default": "Quick Links",
+    "section": "shared",
+    "role": "Heading"
+  },
+  "footer.text.70f8bb9a8a53": {
+    "group": "footer",
+    "type": "text",
+    "label": "Home",
+    "default": "Home",
+    "section": "shared",
+    "role": "Link label",
+    "fallbackOnly": true
+  },
+  "footer.text.6b21fb791ac0": {
+    "group": "footer",
+    "type": "text",
+    "label": "About",
+    "default": "About",
+    "section": "shared",
+    "role": "Link label",
+    "fallbackOnly": true
+  },
+  "footer.text.036b18f02ab5": {
+    "group": "footer",
+    "type": "text",
+    "label": "Portfolio",
+    "default": "Portfolio",
+    "section": "shared",
+    "role": "Link label",
+    "fallbackOnly": true
+  },
+  "footer.text.5cbd58404686": {
+    "group": "footer",
+    "type": "text",
+    "label": "Services",
+    "default": "Services",
+    "section": "shared",
+    "role": "Link label"
+  },
+  "footer.text.b37456c4530b": {
+    "group": "footer",
+    "type": "text",
+    "label": "Contact",
+    "default": "Contact",
+    "section": "shared",
+    "role": "Link label",
+    "fallbackOnly": true
+  },
+  "footer.text.830d359a713d": {
+    "group": "footer",
+    "type": "text",
+    "label": "Explore Services",
+    "default": "Explore Services",
+    "section": "shared",
+    "role": "Link label"
+  },
+  "footer.text.26e00b08d068": {
+    "group": "footer",
+    "type": "text",
+    "label": "Get In Touch",
+    "default": "Get In Touch",
+    "section": "shared",
+    "role": "Heading"
+  },
+  "footer.text.9db108ba6b7f": {
+    "group": "footer",
+    "type": "text",
+    "label": "Privacy Policy",
+    "default": "Privacy Policy",
+    "section": "shared",
+    "role": "Link label",
+    "fallbackOnly": true
+  },
+  "footer.text.0c8a9a95e21a": {
+    "group": "footer",
+    "type": "text",
+    "label": "Terms of Service",
+    "default": "Terms of Service",
+    "section": "shared",
+    "role": "Link label",
+    "fallbackOnly": true
+  },
+  "services.heading.servicesTitle": {
+    "group": "services",
+    "type": "text",
+    "label": "services Title",
+    "default": "My Services",
+    "section": "services.section.services-hero",
+    "role": "Section heading"
+  },
+  "services.heading.servicesSubtitle": {
+    "group": "services",
+    "type": "text",
+    "label": "services Subtitle",
+    "default": "I offer comprehensive design solutions that blend strategy with thoughtful execution.",
+    "section": "services.section.services-hero",
+    "role": "Description"
+  },
+  "services.heading.processTitle": {
+    "group": "services",
+    "type": "text",
+    "label": "process Title",
+    "default": "My Design Process",
+    "section": "services.section.process-section",
+    "role": "Section heading"
+  },
+  "services.heading.processSubtitle": {
+    "group": "services",
+    "type": "text",
+    "label": "process Subtitle",
+    "default": "A collaborative, transparent approach keeps teams aligned and projects moving forward.",
+    "section": "services.section.process-section",
+    "role": "Description"
+  },
+  "services.heading.packagesTitle": {
+    "group": "services",
+    "type": "text",
+    "label": "packages Title",
+    "default": "Service Packages",
+    "section": "shared",
+    "role": "Section heading"
+  },
+  "services.heading.packagesSubtitle": {
+    "group": "services",
+    "type": "text",
+    "label": "packages Subtitle",
+    "default": "Pick the collaboration model that best fits your timeline, scope, and budget.",
+    "section": "shared",
+    "role": "Description"
+  },
+  "services.heading.faqTitle": {
+    "group": "services",
+    "type": "text",
+    "label": "faq Title",
+    "default": "Frequently Asked Questions",
+    "section": "services.section.faq-section",
+    "role": "Section heading"
+  },
+  "services.heading.faqSubtitle": {
+    "group": "services",
+    "type": "text",
+    "label": "faq Subtitle",
+    "default": "Common questions about scope, timelines, pricing, and collaboration.",
+    "section": "services.section.faq-section",
+    "role": "Description"
+  },
+  "navigation.section.navigation": {
+    "group": "navigation",
+    "type": "visibility",
+    "label": "navigation",
+    "default": "1"
+  },
+  "footer.section.footer": {
+    "group": "footer",
+    "type": "visibility",
+    "label": "footer",
+    "default": "1"
+  },
+  "footer.text.cta": {
+    "group": "footer",
+    "type": "text",
+    "label": "Contact button",
+    "default": "Start a Project",
+    "section": "shared",
+    "role": "Contact button label"
+  }
+}

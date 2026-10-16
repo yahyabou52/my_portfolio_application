@@ -2,6 +2,7 @@
 
 require_once ROOT_PATH . '/app/core/helpers.php';
 require_once ROOT_PATH . '/app/core/ContentRepository.php';
+require_once ROOT_PATH . '/app/models/User.php';
 
 abstract class BaseController {
     protected $data = [];
@@ -9,6 +10,9 @@ abstract class BaseController {
     protected $contentRepository;
     
     public function __construct() {
+        session_start_safe();
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { verify_csrf(); }
+
         // Set CSP headers for all requests
         if (!headers_sent()) {
             header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://fonts.googleapis.com https://ajax.googleapis.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: https:; connect-src 'self' https:;");
@@ -67,7 +71,16 @@ abstract class BaseController {
     }
     
     protected function render($view, $layout = 'main', $data = []) {
+        if ($layout === 'main') {
+            $pageKey = explode('/', $view)[0] === 'home' ? basename($view) : explode('/', $view)[0];
+            if ($pageKey === 'index') { $pageKey = 'home'; }
+            $record = (new Page())->getByKey($pageKey);
+            if ($record && empty($record['is_active']) && !(isset($_GET['preview']) && (new User())->isLoggedIn())) { http_response_code(404); echo 'Page not found.'; return; }
+            if ($record && $view !== 'portfolio/show') { $data['title'] = $record['title']; $data['meta_description'] = $record['meta_description'] ?? ''; }
+        }
         $content = $this->view($view, $data);
+        if ($layout === 'main') { $content = WebsiteContent::orderSections($content); }
+        $content = preg_replace_callback('/<form\b[^>]*>/i', fn($match) => $match[0] . '<input type="hidden" name="csrf_token" value="' . htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') . '">', $content);
         $this->layout($layout, $content, $data);
     }
     

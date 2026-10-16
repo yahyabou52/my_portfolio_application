@@ -1,6 +1,6 @@
 <?php
 $initialTestimonialsJson = $testimonials_json ?? '[]';
-$placeholderImage = $testimonial_placeholder ?? asset('images/testimonials/default-avatar.jpg');
+$placeholderImage = $testimonial_placeholder ?? asset('images/placeholder.svg');
 $testimonialRoutes = $testimonial_routes ?? [];
 
 $createUrl = $testimonialRoutes['create'] ?? url('admin/testimonials');

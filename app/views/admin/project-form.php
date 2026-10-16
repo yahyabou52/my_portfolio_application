@@ -34,7 +34,7 @@ if (is_array($galleryValue)) {
 
 $currentStatus = $values['status'] ?? 'draft';
 $featuredChecked = !empty($values['featured']) || !empty($values['is_featured']);
-$featuredImage = !empty($values['image_url']) ? media_url($values['image_url']) : asset('images/projects/default.jpg');
+$featuredImage = !empty($values['image_url']) ? media_url($values['image_url']) : asset('images/placeholder.svg');
 $clientVisibility = $values['client_visibility'] ?? 'yes';
 ?>
 

@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="<?= asset('css/admin.css') ?>">
     
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="<?= asset('images/favicon.ico') ?>">
+    <link rel="icon" type="image/x-icon" href="<?= asset('images/placeholder.svg') ?>">
 </head>
 <body class="admin-body">
     <?php if (($page ?? '') !== 'admin-login'): ?>

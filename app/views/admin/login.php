@@ -6,18 +6,18 @@
                     <div class="text-center mb-4">
                         <i class="bi bi-shield-lock display-4 text-primary mb-3"></i>
                         <h4 class="card-title">Welcome Back</h4>
-                        <p class="text-muted">Please sign in to your account</p>
+                        <p class="text-muted"><?= htmlspecialchars(TenantContext::site()['name'] ?? 'Your website') ?> dashboard</p>
                     </div>
                     
                     <form method="POST" action="<?= url('admin/login') ?>">
                         <div class="mb-3">
-                            <label for="username" class="form-label">Username</label>
+                            <label for="username" class="form-label">Email or username</label>
                             <div class="input-group">
                                 <span class="input-group-text">
                                     <i class="bi bi-person"></i>
                                 </span>
                                 <input type="text" class="form-control" id="username" name="username" 
-                                       required autofocus placeholder="Enter your username">
+                                       required autofocus placeholder="Enter your email or username">
                             </div>
                         </div>
                         

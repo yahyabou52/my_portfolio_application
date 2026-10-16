@@ -8,24 +8,24 @@ $faqsList = $faqs ?? [];
 $testimonials = $featured_testimonials ?? [];
 
 $heroSection = $pageSections['hero'] ?? [];
-$servicesTitle = $heroSection['title'] ?? 'My Services';
-$servicesSubtitle = $heroSection['subtitle'] ?? 'I offer comprehensive design solutions that blend strategy with thoughtful execution.';
+$servicesTitle = WebsiteContent::get('services.heading.servicesTitle', $heroSection['title'] ?? 'My Services');
+$servicesSubtitle = WebsiteContent::get('services.heading.servicesSubtitle', $heroSection['subtitle'] ?? 'I offer comprehensive design solutions that blend strategy with thoughtful execution.');
 
 $processSection = $pageSections['process'] ?? [];
-$processTitle = $processSection['title'] ?? 'My Design Process';
-$processSubtitle = $processSection['subtitle'] ?? 'A collaborative, transparent approach keeps teams aligned and projects moving forward.';
+$processTitle = WebsiteContent::get('services.heading.processTitle', $processSection['title'] ?? 'My Design Process');
+$processSubtitle = WebsiteContent::get('services.heading.processSubtitle', $processSection['subtitle'] ?? 'A collaborative, transparent approach keeps teams aligned and projects moving forward.');
 
 $packagesSection = $pageSections['packages'] ?? [];
-$packagesTitle = $packagesSection['title'] ?? 'Service Packages';
-$packagesSubtitle = $packagesSection['subtitle'] ?? 'Pick the collaboration model that best fits your timeline, scope, and budget.';
+$packagesTitle = WebsiteContent::get('services.heading.packagesTitle', $packagesSection['title'] ?? 'Service Packages');
+$packagesSubtitle = WebsiteContent::get('services.heading.packagesSubtitle', $packagesSection['subtitle'] ?? 'Pick the collaboration model that best fits your timeline, scope, and budget.');
 
 $faqSection = $pageSections['faq'] ?? [];
-$faqTitle = $faqSection['title'] ?? 'Frequently Asked Questions';
-$faqSubtitle = $faqSection['subtitle'] ?? 'Common questions about scope, timelines, pricing, and collaboration.';
+$faqTitle = WebsiteContent::get('services.heading.faqTitle', $faqSection['title'] ?? 'Frequently Asked Questions');
+$faqSubtitle = WebsiteContent::get('services.heading.faqSubtitle', $faqSection['subtitle'] ?? 'Common questions about scope, timelines, pricing, and collaboration.');
 ?>
 
 <!-- Services Hero -->
-<section class="services-hero py-5 mt-5">
+<?php if (WebsiteContent::visible('services.section.services-hero')): ?><section data-section-key="services.section.services-hero" class="services-hero py-5 mt-5">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center" data-aos="fade-up">
@@ -38,10 +38,10 @@ $faqSubtitle = $faqSection['subtitle'] ?? 'Common questions about scope, timelin
             </div>
         </div>
     </div>
-</section>
+</section><?php endif; ?>
 
 <!-- Main Services -->
-<section class="main-services py-5">
+<?php if (WebsiteContent::visible('services.section.main-services')): ?><section data-section-key="services.section.main-services" class="main-services py-5">
     <div class="container">
         <div class="row">
             <?php if (!empty($servicesList)): ?>
@@ -108,18 +108,18 @@ $faqSubtitle = $faqSection['subtitle'] ?? 'Common questions about scope, timelin
             <?php else: ?>
                 <div class="col-12" data-aos="fade-up">
                     <div class="empty-state text-center py-5">
-                        <h3 class="mb-3">Services coming soon</h3>
-                        <p class="text-muted mb-4">Add services in the admin dashboard to showcase your areas of expertise.</p>
-                        <a href="<?= url('contact') ?>" class="btn btn-primary">Start a project</a>
+                        <h3 class="mb-3"><?= site_text('services.text.766464fdf698', 'Services coming soon') ?></h3>
+                        <p class="text-muted mb-4"><?= site_text('services.text.8e4ffbfa214d', 'Add services in the admin dashboard to showcase your areas of expertise.') ?></p>
+                        <a href="<?= url('contact') ?>" class="btn btn-primary"><?= site_text('services.text.f2cc5a40be6d', 'Start a project') ?></a>
                     </div>
                 </div>
             <?php endif; ?>
         </div>
     </div>
-</section>
+</section><?php endif; ?>
 
 <!-- Process Section -->
-<section class="process-section py-5 bg-light">
+<?php if (WebsiteContent::visible('services.section.process-section')): ?><section data-section-key="services.section.process-section" class="process-section py-5 bg-light">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center" data-aos="fade-up">
@@ -156,17 +156,17 @@ $faqSubtitle = $faqSection['subtitle'] ?? 'Common questions about scope, timelin
             <?php else: ?>
                 <div class="col-lg-8 mx-auto" data-aos="fade-up">
                     <div class="empty-state text-center py-5">
-                        <h3 class="mb-3">Process outline coming soon</h3>
-                        <p class="text-muted">Document your discovery, research, design, and delivery steps to help clients understand how you collaborate.</p>
+                        <h3 class="mb-3"><?= site_text('services.text.2dc9c02fb03d', 'Process outline coming soon') ?></h3>
+                        <p class="text-muted"><?= site_text('services.text.25643a66ff7a', 'Document your discovery, research, design, and delivery steps to help clients understand how you collaborate.') ?></p>
                     </div>
                 </div>
             <?php endif; ?>
         </div>
     </div>
-</section>
+</section><?php endif; ?>
 
 <!-- Packages Section -->
-<section class="packages-section py-5">
+<?php if (WebsiteContent::visible('services.section.packages-section')): ?><section data-section-key="services.section.packages-section" class="packages-section py-5">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center" data-aos="fade-up">
@@ -232,17 +232,17 @@ $faqSubtitle = $faqSection['subtitle'] ?? 'Common questions about scope, timelin
             <?php else: ?>
                 <div class="col-lg-8 mx-auto" data-aos="fade-up">
                     <div class="empty-state text-center py-5">
-                        <h3 class="mb-3">Packages coming soon</h3>
-                        <p class="text-muted">Define pricing tiers to help clients quickly understand how they can engage with you.</p>
+                        <h3 class="mb-3"><?= site_text('services.text.4847bc70c124', 'Packages coming soon') ?></h3>
+                        <p class="text-muted"><?= site_text('services.text.9c9aacd0bfe3', 'Define pricing tiers to help clients quickly understand how they can engage with you.') ?></p>
                     </div>
                 </div>
             <?php endif; ?>
         </div>
     </div>
-</section>
+</section><?php endif; ?>
 
 <!-- FAQ Section -->
-<section class="faq-section py-5 bg-light">
+<?php if (WebsiteContent::visible('services.section.faq-section')): ?><section data-section-key="services.section.faq-section" class="faq-section py-5 bg-light">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center" data-aos="fade-up">
@@ -280,38 +280,36 @@ $faqSubtitle = $faqSection['subtitle'] ?? 'Common questions about scope, timelin
                     </div>
                 <?php else: ?>
                     <div class="empty-state text-center py-5" data-aos="fade-up">
-                        <h3 class="mb-3">FAQ coming soon</h3>
-                        <p class="text-muted">Collect common client questions to set expectations about communication, deliverables, and timelines.</p>
+                        <h3 class="mb-3"><?= site_text('services.text.32964ebb75e4', 'FAQ coming soon') ?></h3>
+                        <p class="text-muted"><?= site_text('services.text.5a626ac0fa0a', 'Collect common client questions to set expectations about communication, deliverables, and timelines.') ?></p>
                     </div>
                 <?php endif; ?>
             </div>
         </div>
     </div>
-</section>
+</section><?php endif; ?>
 
 <?php if (!empty($pageContent)): ?>
-<section class="services-extra-content py-5">
+<?php if (WebsiteContent::visible('services.section.services-extra-content')): ?><section data-section-key="services.section.services-extra-content" class="services-extra-content py-5">
     <div class="container" data-aos="fade-up">
         <?= $pageContent ?>
     </div>
-</section>
+</section><?php endif; ?>
 <?php endif; ?>
 
 <?php if (!empty($testimonials)): ?>
-<section class="testimonials-section py-5 bg-light">
+<?php if (WebsiteContent::visible('services.section.testimonials-section')): ?><section data-section-key="services.section.testimonials-section" class="testimonials-section py-5 bg-light">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center" data-aos="fade-up">
-                <h2 class="section-title mb-3">What Clients Say</h2>
-                <p class="section-subtitle text-muted mb-5">
-                    Teams trust the collaborative, research-driven approach I bring to every engagement.
-                </p>
+                <h2 class="section-title mb-3"><?= site_text('services.text.9e1785b699ae', 'What Clients Say') ?></h2>
+                <p class="section-subtitle text-muted mb-5"><?= site_text('services.text.aa870dc2da12', 'Teams trust the collaborative, research-driven approach I bring to every engagement.') ?></p>
             </div>
         </div>
         <div class="row">
             <?php foreach ($testimonials as $index => $testimonial): ?>
                 <?php
-                $avatar = !empty($testimonial['image_url']) ? $testimonial['image_url'] : asset('images/testimonials/default-avatar.jpg');
+                $avatar = !empty($testimonial['image_url']) ? $testimonial['image_url'] : asset('images/placeholder.svg');
                 $testimonialText = $testimonial['testimonial_text'] ?? '';
                 $rating = (int)($testimonial['rating'] ?? 5);
                 ?>
@@ -344,29 +342,23 @@ $faqSubtitle = $faqSection['subtitle'] ?? 'Common questions about scope, timelin
             <?php endforeach; ?>
         </div>
     </div>
-</section>
+</section><?php endif; ?>
 <?php endif; ?>
 
 <!-- CTA Section -->
-<section class="cta-section py-5">
+<?php if (WebsiteContent::visible('services.section.cta-section')): ?><section data-section-key="services.section.cta-section" class="cta-section py-5">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center" data-aos="fade-up">
-                <h2 class="cta-title mb-3">Ready to Get Started?</h2>
-                <p class="cta-subtitle text-muted mb-4">
-                    Let's discuss your project and how I can help you create an exceptional user experience.
-                </p>
+                <h2 class="cta-title mb-3"><?= site_text('services.text.019b6092ae82', 'Ready to Get Started?') ?></h2>
+                <p class="cta-subtitle text-muted mb-4"><?= site_text('services.text.672f65ef093f', 'Let\'s discuss your project and how I can help you create an exceptional user experience.') ?></p>
                 <div class="cta-actions">
                     <a href="<?= url('contact') ?>" class="btn btn-primary btn-lg me-3">
-                        <i class="bi bi-envelope me-2"></i>
-                        Start Your Project
-                    </a>
+                        <i class="bi bi-envelope me-2"></i><?= site_text('services.text.1e7f94de99ff', 'Start Your Project') ?></a>
                     <a href="<?= url('portfolio') ?>" class="btn btn-outline-primary btn-lg">
-                        <i class="bi bi-collection me-2"></i>
-                        View My Work
-                    </a>
+                        <i class="bi bi-collection me-2"></i><?= site_text('services.text.eeab5301df0a', 'View My Work') ?></a>
                 </div>
             </div>
         </div>
     </div>
-</section>
+</section><?php endif; ?>

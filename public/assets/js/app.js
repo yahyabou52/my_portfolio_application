@@ -5,7 +5,7 @@
 
 // Apply theme as early as possible to prevent flashing
 (function() {
-    const savedTheme = localStorage.getItem('theme') || 'light';
+    const savedTheme = localStorage.getItem('theme:' + document.documentElement.dataset.siteId) || document.documentElement.getAttribute('data-bs-theme') || document.documentElement.getAttribute('data-bs-theme') || 'light';
     document.documentElement.setAttribute('data-bs-theme', savedTheme);
     document.body.setAttribute('data-bs-theme', savedTheme);
 })();
@@ -29,10 +29,16 @@ document.addEventListener('DOMContentLoaded', function() {
  * Handles light/dark mode switching with localStorage persistence
  */
 function initThemeToggle() {
+    if (document.documentElement.dataset.darkMode === '0') {
+        document.documentElement.setAttribute('data-bs-theme', 'light');
+        document.body.setAttribute('data-bs-theme', 'light');
+        const toggle = document.getElementById('themeToggle'); if (toggle) toggle.hidden = true;
+        return;
+    }
     const themeToggle = document.getElementById('themeToggle');
     
     // Get saved theme or default to light
-    const savedTheme = localStorage.getItem('theme') || 'light';
+    const savedTheme = localStorage.getItem('theme:' + document.documentElement.dataset.siteId) || document.documentElement.getAttribute('data-bs-theme') || 'light';
     
     // Apply theme immediately (before DOM elements load)
     document.documentElement.setAttribute('data-bs-theme', savedTheme);
@@ -57,7 +63,7 @@ function initThemeToggle() {
         // Apply new theme to both elements
         document.documentElement.setAttribute('data-bs-theme', newTheme);
         document.body.setAttribute('data-bs-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
+        localStorage.setItem('theme:' + document.documentElement.dataset.siteId, newTheme);
         
         // Update icon
         updateThemeToggleIcon(newTheme);
@@ -523,4 +529,8 @@ if ('serviceWorker' in navigator) {
         // Uncomment when service worker is implemented
         // navigator.serviceWorker.register('/sw.js');
     });
+}
+if (document.documentElement.dataset.darkMode === '0') {
+ document.documentElement.setAttribute('data-bs-theme', 'light');
+ document.addEventListener('DOMContentLoaded', () => document.querySelectorAll('#themeToggle, .theme-toggle').forEach(el => el.hidden = true));
 }

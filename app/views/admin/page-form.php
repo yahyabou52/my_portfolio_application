@@ -32,7 +32,7 @@ $formAction = url('admin/pages/' . $page_data['page_key'] . '/edit');
                     </div>
                     <div class="card-body">
                         <div class="mb-3">
-                            <label for="title" class="form-label">Page Title</label>
+                            <label for="title" class="form-label">Browser title</label>
                             <input type="text"
                                    class="form-control"
                                    id="title"
@@ -52,14 +52,7 @@ $formAction = url('admin/pages/' . $page_data['page_key'] . '/edit');
                             <div class="form-text">This appears in search results and social previews.</div>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="content" class="form-label">Main Content</label>
-                            <textarea class="form-control"
-                                      id="content"
-                                      name="content"
-                                      rows="12"
-                                      placeholder="Write the main body of the page here."><?= htmlspecialchars($page_data['content'] ?? '') ?></textarea>
-                            <div class="form-text">You can use HTML to add formatting, lists, and links.</div>
+                        <div class="mb-3"><p class="text-muted">Edit the visible words, sections and images in the website editor.</p><a class="btn btn-outline-primary" href="<?= url('admin/website?group=' . urlencode($page_data['page_key'])) ?>">Edit page content →</a></div>
                         </div>
                     </div>
                 </div>

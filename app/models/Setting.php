@@ -4,6 +4,7 @@ require_once ROOT_PATH . '/app/core/BaseModel.php';
 
 class Setting extends BaseModel {
     protected $table = 'site_settings';
+    public const SITE_FIELDS = ['site_title'=>'site_title','site_tagline'=>'site_tagline','site_description'=>'site_description','site_logo'=>'logo_path','favicon'=>'favicon_path','nav_cta_text'=>'nav_cta_text','nav_cta_url'=>'nav_cta_url','contact_email'=>'contact_email','contact_phone'=>'contact_phone','contact_address'=>'contact_address','footer_text'=>'footer_text','footer_links'=>'footer_links','social_links'=>'social_links','theme_default'=>'theme_default'];
     protected $fillable = [
         'setting_key',
         'setting_value',
@@ -16,7 +17,10 @@ class Setting extends BaseModel {
         $sql = "SELECT * FROM {$this->table} WHERE setting_group = ? ORDER BY setting_key ASC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$group]);
-        return $stmt->fetchAll();
+        $rows = $stmt->fetchAll();
+        $site = $this->db->query('SELECT * FROM settings_site WHERE id=1')->fetch();
+        foreach ($rows as &$row) { if (isset(self::SITE_FIELDS[$row['setting_key']])) { $row['setting_value'] = $site[self::SITE_FIELDS[$row['setting_key']]] ?? ''; } } unset($row);
+        return $rows;
     }
     
     public function getByKey($key) {
@@ -24,6 +28,10 @@ class Setting extends BaseModel {
     }
     
     public function updateByKey($key, $value) {
+        if (isset(self::SITE_FIELDS[$key])) {
+            $column = self::SITE_FIELDS[$key];
+            $this->db->prepare("UPDATE settings_site SET {$column} = ?, updated_at=NOW() WHERE id=1")->execute([$value]);
+        }
         $sql = "UPDATE {$this->table} SET setting_value = ?, updated_at = NOW() WHERE setting_key = ?";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$value, $key]);

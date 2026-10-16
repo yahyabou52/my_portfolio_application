@@ -13,7 +13,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Images Section -->
     <div class="row">
         <div class="col-12">
@@ -37,18 +37,18 @@
                                 <div class="col-md-3">
                                     <div class="card media-item">
                                         <div class="position-relative">
-                                            <img src="<?= url($image['file_path']) ?>" 
-                                                 class="card-img-top" 
+                                            <img src="<?= media_url($image['file_path']) ?>"
+                                                 class="card-img-top"
                                                  style="height: 200px; object-fit: cover;"
                                                  alt="<?= htmlspecialchars($image['alt_text'] ?: $image['original_name']) ?>">
                                             <div class="position-absolute top-0 end-0 m-2">
                                                 <div class="btn-group btn-group-sm">
-                                                    <button type="button" 
+                                                    <button type="button"
                                                             class="btn btn-primary btn-sm"
                                                             onclick="editMedia(<?= $image['id'] ?>, '<?= htmlspecialchars($image['title']) ?>', '<?= htmlspecialchars($image['alt_text']) ?>')">
                                                         <i class="bi bi-pencil"></i>
                                                     </button>
-                                                    <button type="button" 
+                                                    <button type="button"
                                                             class="btn btn-danger btn-sm"
                                                             onclick="deleteMedia(<?= $image['id'] ?>, '<?= htmlspecialchars($image['original_name']) ?>')">
                                                         <i class="bi bi-trash"></i>
@@ -64,8 +64,8 @@
                                                 <?= number_format($image['file_size'] / 1024, 1) ?> KB
                                             </small>
                                             <div class="mt-1">
-                                                <input type="text" class="form-control form-control-sm" 
-                                                       value="<?= url($image['file_path']) ?>" 
+                                                <input type="text" class="form-control form-control-sm"
+                                                       value="<?= url($image['file_path']) ?>"
                                                        readonly onclick="this.select()">
                                             </div>
                                         </div>
@@ -78,7 +78,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Documents Section -->
     <?php if (!empty($documents)): ?>
         <div class="row">
@@ -116,17 +116,17 @@
                                             <td><?= date('M j, Y', strtotime($doc['created_at'])) ?></td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <a href="<?= url($doc['file_path']) ?>" 
-                                                       class="btn btn-outline-primary" 
+                                                    <a href="<?= url($doc['file_path']) ?>"
+                                                       class="btn btn-outline-primary"
                                                        target="_blank">
                                                         <i class="bi bi-download"></i>
                                                     </a>
-                                                    <button type="button" 
+                                                    <button type="button"
                                                             class="btn btn-outline-primary"
                                                             onclick="editMedia(<?= $doc['id'] ?>, '<?= htmlspecialchars($doc['title']) ?>', '<?= htmlspecialchars($doc['alt_text']) ?>')">
                                                         <i class="bi bi-pencil"></i>
                                                     </button>
-                                                    <button type="button" 
+                                                    <button type="button"
                                                             class="btn btn-outline-danger"
                                                             onclick="deleteMedia(<?= $doc['id'] ?>, '<?= htmlspecialchars($doc['original_name']) ?>')">
                                                         <i class="bi bi-trash"></i>
@@ -156,10 +156,10 @@
             <div class="modal-body">
                 <div class="mb-3">
                     <label for="fileInput" class="form-label">Select Files</label>
-                    <input type="file" class="form-control" id="fileInput" multiple 
+                    <input type="file" class="form-control" id="fileInput" multiple
                            accept="image/*,.pdf,.doc,.docx">
                     <div class="form-text">
-                        Supported formats: Images (JPG, PNG, GIF, WebP, SVG), Documents (PDF, DOC, DOCX)
+                        Supported formats: Images (JPG, PNG, GIF, WebP, WebP), Documents (PDF, DOC, DOCX)
                         <br>Maximum file size: 5MB
                     </div>
                 </div>
@@ -212,34 +212,35 @@ let currentEditId = null;
 function uploadFiles() {
     const fileInput = document.getElementById('fileInput');
     const files = fileInput.files;
-    
+
     if (files.length === 0) {
         alert('Please select files to upload');
         return;
     }
-    
+
     const progressContainer = document.getElementById('uploadProgress');
     const progressBar = progressContainer.querySelector('.progress-bar');
-    
+
     progressContainer.classList.remove('d-none');
-    
+
     let uploadedCount = 0;
     const totalFiles = files.length;
-    
+
     Array.from(files).forEach((file, index) => {
         const formData = new FormData();
         formData.append('file', file);
-        
+
         fetch('<?= url('admin/media/upload') ?>', {
             method: 'POST',
             body: formData
         })
         .then(response => response.json())
         .then(data => {
+            if (!data.success) { throw new Error(data.message || 'Upload failed'); }
             uploadedCount++;
             const progress = (uploadedCount / totalFiles) * 100;
             progressBar.style.width = progress + '%';
-            
+
             if (uploadedCount === totalFiles) {
                 setTimeout(() => {
                     location.reload();
@@ -248,6 +249,7 @@ function uploadFiles() {
         })
         .catch(error => {
             console.error('Upload error:', error);
+            alert(error.message || 'Upload failed. Please try again.');
             uploadedCount++;
             const progress = (uploadedCount / totalFiles) * 100;
             progressBar.style.width = progress + '%';
@@ -259,7 +261,7 @@ function editMedia(id, title, altText) {
     currentEditId = id;
     document.getElementById('editTitle').value = title || '';
     document.getElementById('editAltText').value = altText || '';
-    
+
     const modal = new bootstrap.Modal(document.getElementById('editModal'));
     modal.show();
 }
@@ -282,9 +284,9 @@ function deleteMedia(id, name) {
 
 document.getElementById('editForm').addEventListener('submit', function(e) {
     e.preventDefault();
-    
+
     const formData = new FormData(this);
-    
+
     fetch(`<?= url('admin/media/') ?>${currentEditId}/update`, {
         method: 'POST',
         body: formData

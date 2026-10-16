@@ -11,7 +11,7 @@ $bio = $aboutData['bio'] ?? $aboutData['about_content'] ?? '';
 $philosophy = $aboutData['philosophy'] ?? '';
 $aboutImage = !empty($aboutData['image_url'] ?? null)
     ? $aboutData['image_url']
-    : (!empty($aboutData['about_image_url']) ? $aboutData['about_image_url'] : asset('images/about-photo.jpg'));
+    : (!empty($aboutData['about_image_url']) ? $aboutData['about_image_url'] : asset('images/placeholder.svg'));
 $aboutImageAlt = trim((string)($aboutData['image_alt'] ?? $aboutData['about_image_alt'] ?? $headline));
 
 $timelineItems = $aboutData['timeline'] ?? ($pageSections['timeline']['items'] ?? []);
@@ -39,7 +39,7 @@ $hasTimelineContent = !empty($timelineGroups['experience']['items']) || !empty($
 ?>
 
 <!-- About Hero Section -->
-<section class="about-hero py-5 mt-5">
+<?php if (WebsiteContent::visible('about.section.about-hero')): ?><section data-section-key="about.section.about-hero" class="about-hero py-5 mt-5">
     <div class="container">
         <div class="row align-items-center">
             <div class="col-lg-5 col-xl-4 mb-4 mb-lg-0" data-aos="fade-right">
@@ -74,9 +74,9 @@ $hasTimelineContent = !empty($timelineGroups['experience']['items']) || !empty($
             </div>
         </div>
     </div>
-</section>
+</section><?php endif; ?>
 
-<section class="experience-section py-5 bg-light">
+<?php if (WebsiteContent::visible('about.section.experience-section')): ?><section data-section-key="about.section.experience-section" class="experience-section py-5 bg-light">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center" data-aos="fade-up">
@@ -146,24 +146,22 @@ $hasTimelineContent = !empty($timelineGroups['experience']['items']) || !empty($
                     <?php else: ?>
                         <div class="text-center py-4 text-muted">
                             <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
-                            <p class="mb-0">No timeline entries yet. Add milestones in the admin <a href="<?= url('admin/timeline') ?>">Timeline</a> to display them here.</p>
+                            <p class="mb-0"><?= site_text('about.text.4521a4f05dbe', 'No timeline entries yet. Add milestones in the admin') ?><a href="<?= url('admin/timeline') ?>"><?= site_text('about.text.018514a3d58a', 'Timeline') ?></a><?= site_text('about.text.76faaac560c0', 'to display them here.') ?></p>
                         </div>
                     <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
-</section>
+</section><?php endif; ?>
 
 <?php if (!empty($skillsByCategory)): ?>
-<section class="skills-detail-section py-5">
+<?php if (WebsiteContent::visible('about.section.skills-detail-section')): ?><section data-section-key="about.section.skills-detail-section" class="skills-detail-section py-5">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center" data-aos="fade-up">
-                <h2 class="section-title mb-3">Skills &amp; Expertise</h2>
-                <p class="section-subtitle text-muted mb-5">
-                    A breakdown of the capabilities, tools, and disciplines I practice every day.
-                </p>
+                <h2 class="section-title mb-3"><?= site_text('about.text.caba7908b133', 'Skills &amp; Expertise') ?></h2>
+                <p class="section-subtitle text-muted mb-5"><?= site_text('about.text.882712d4231a', 'A breakdown of the capabilities, tools, and disciplines I practice every day.') ?></p>
             </div>
         </div>
         <div class="row">
@@ -199,25 +197,23 @@ $hasTimelineContent = !empty($timelineGroups['experience']['items']) || !empty($
             <?php endforeach; ?>
         </div>
     </div>
-</section>
+</section><?php endif; ?>
 <?php endif; ?>
 
 
 <?php if (!empty($testimonials)): ?>
-<section class="testimonials-section py-5 bg-light">
+<?php if (WebsiteContent::visible('about.section.testimonials-section')): ?><section data-section-key="about.section.testimonials-section" class="testimonials-section py-5 bg-light">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center" data-aos="fade-up">
-                <h2 class="section-title mb-3">What Clients Say</h2>
-                <p class="section-subtitle text-muted mb-5">
-                    Insights from clients and teams I've partnered with.
-                </p>
+                <h2 class="section-title mb-3"><?= site_text('about.text.9e1785b699ae', 'What Clients Say') ?></h2>
+                <p class="section-subtitle text-muted mb-5"><?= site_text('about.text.36b50b6b9154', 'Insights from clients and teams I\'ve partnered with.') ?></p>
             </div>
         </div>
         <div class="row">
             <?php foreach ($testimonials as $index => $testimonial): ?>
                 <?php
-                $avatar = !empty($testimonial['image_url']) ? $testimonial['image_url'] : asset('images/testimonials/default-avatar.jpg');
+                $avatar = !empty($testimonial['image_url']) ? $testimonial['image_url'] : asset('images/placeholder.svg');
                 $testimonialText = $testimonial['testimonial_text'] ?? '';
                 $rating = (int)($testimonial['rating'] ?? 5);
                 ?>
@@ -250,29 +246,23 @@ $hasTimelineContent = !empty($timelineGroups['experience']['items']) || !empty($
             <?php endforeach; ?>
         </div>
     </div>
-</section>
+</section><?php endif; ?>
 <?php endif; ?>
 
 <!-- CTA Section -->
-<section class="cta-section py-5">
+<?php if (WebsiteContent::visible('about.section.cta-section')): ?><section data-section-key="about.section.cta-section" class="cta-section py-5">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center" data-aos="fade-up">
-                <h2 class="cta-title mb-3">Let's Work Together</h2>
-                <p class="cta-subtitle text-muted mb-4">
-                    I'm always excited to take on new challenges and help bring ideas to life.
-                </p>
+                <h2 class="cta-title mb-3"><?= site_text('about.text.28e7ac9a04dd', 'Let\'s Work Together') ?></h2>
+                <p class="cta-subtitle text-muted mb-4"><?= site_text('about.text.c951eb5bdcb3', 'I\'m always excited to take on new challenges and help bring ideas to life.') ?></p>
                 <div class="cta-actions">
                     <a href="<?= url('contact') ?>" class="btn btn-primary btn-lg me-3">
-                        <i class="bi bi-envelope me-2"></i>
-                        Get In Touch
-                    </a>
+                        <i class="bi bi-envelope me-2"></i><?= site_text('about.text.26e00b08d068', 'Get In Touch') ?></a>
                     <a href="<?= url('portfolio') ?>" class="btn btn-outline-primary btn-lg">
-                        <i class="bi bi-collection me-2"></i>
-                        View Portfolio
-                    </a>
+                        <i class="bi bi-collection me-2"></i><?= site_text('about.text.0259cb7a9856', 'View Portfolio') ?></a>
                 </div>
             </div>
         </div>
     </div>
-</section>
+</section><?php endif; ?>

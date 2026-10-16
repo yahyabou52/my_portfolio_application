@@ -47,7 +47,7 @@ class AdminController extends BaseController {
         }
         
         $username = trim($_POST['username'] ?? '');
-        $password = trim($_POST['password'] ?? '');
+        $password = (string)($_POST['password'] ?? '');
         
         $errors = $this->userModel->validateLogin(['username' => $username, 'password' => $password]);
         
@@ -82,7 +82,9 @@ class AdminController extends BaseController {
             'page' => 'admin-dashboard',
             'total_messages' => $totalMessages,
             'unread_messages' => $unreadMessages,
-            'recent_messages' => $recentMessages
+            'recent_messages' => $recentMessages,
+            'project_count' => (new Project())->count(),
+            'published_pages' => count(array_filter((new Page())->all(), fn($p)=>!empty($p['is_active'])))
         ];
         
         $this->render('admin/dashboard', 'admin', $data);

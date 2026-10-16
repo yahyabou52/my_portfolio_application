@@ -93,7 +93,7 @@ class User extends BaseModel {
     
     public function isLoggedIn() {
         session_start_safe();
-        return isset($_SESSION['admin_user']);
+        return isset($_SESSION['admin_user']) && ($_SESSION['site_id'] ?? null) === TenantContext::id();
     }
     
     public function getCurrentUser() {
@@ -110,6 +110,8 @@ class User extends BaseModel {
         // Remove password from session data
         unset($user['password']);
         
+        session_regenerate_id(true);
+        $_SESSION['site_id'] = TenantContext::id();
         $_SESSION['admin_user'] = $user;
         $_SESSION['admin_logged_in'] = true;
         $_SESSION['admin_login_time'] = time();

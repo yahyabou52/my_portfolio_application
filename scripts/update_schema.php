@@ -2,7 +2,7 @@
 
 require_once __DIR__ . '/../config/config.php';
 
-$connection = Database::getInstance()->getConnection();
+
 
 function tableExists(PDO $connection, string $table): bool
 {
@@ -348,7 +348,21 @@ function ensureDesignProcessSteps(PDO $connection): void
     }
 }
 
-try {
+function ensureWebsiteSettings(PDO $connection): void {
+    $connection->exec("CREATE TABLE IF NOT EXISTS site_settings (
+        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        setting_key VARCHAR(100) NOT NULL UNIQUE,
+        setting_value TEXT,
+        setting_type VARCHAR(20) NOT NULL DEFAULT 'text',
+        setting_group VARCHAR(50) NOT NULL DEFAULT 'general',
+        is_editable TINYINT(1) NOT NULL DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function migratePortfolioSchema(PDO $connection): void {
+    ensureWebsiteSettings($connection);
     ensurePricingPlans($connection);
     ensureFaqs($connection);
     ensureDesignProcessSteps($connection);
@@ -364,7 +378,8 @@ try {
     }
 
     echo "Database schema updated successfully.\n";
-} catch (Throwable $throwable) {
-    fwrite(STDERR, 'Schema update failed: ' . $throwable->getMessage() . "\n");
-    exit(1);
+}
+
+if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__) {
+    migratePortfolioSchema(Database::getInstance()->getConnection());
 }

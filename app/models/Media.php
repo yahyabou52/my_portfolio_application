@@ -33,29 +33,21 @@ class Media extends BaseModel {
     }
     
     public function uploadFile($fileData, $uploadedBy = null) {
-        $uploadDir = ROOT_PATH . '/public/assets/uploads/';
+        $relativeDir = 'assets/uploads/sites/' . TenantContext::id() . '/';
+        $uploadDir = ROOT_PATH . '/public/' . $relativeDir;
         
         // Create upload directory if it doesn't exist
         if (!file_exists($uploadDir)) {
             mkdir($uploadDir, 0755, true);
         }
         
-        $allowedTypes = [
-            'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
-            'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        ];
-        
-        if (!in_array($fileData['type'], $allowedTypes)) {
-            throw new Exception('File type not allowed');
-        }
-        
-        $maxSize = 5 * 1024 * 1024; // 5MB
-        if ($fileData['size'] > $maxSize) {
-            throw new Exception('File size too large');
-        }
-        
-        $extension = pathinfo($fileData['name'], PATHINFO_EXTENSION);
-        $filename = uniqid() . '_' . time() . '.' . $extension;
+        if (($fileData['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file($fileData['tmp_name'])) { throw new Exception('Choose a file to upload.'); }
+        if (filesize($fileData['tmp_name']) > 5 * 1024 * 1024) { throw new Exception('File size exceeds 5 MB.'); }
+        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($fileData['tmp_name']);
+        $types = ['image/jpeg'=>'jpg', 'image/png'=>'png', 'image/gif'=>'gif', 'image/webp'=>'webp', 'application/pdf'=>'pdf'];
+        if (!isset($types[$mime])) { throw new Exception('Upload a JPG, PNG, GIF, WebP image or PDF document.'); }
+        $fileData['type'] = $mime;
+        $filename = bin2hex(random_bytes(16)) . '.' . $types[$mime];
         $filePath = $uploadDir . $filename;
         
         if (!move_uploaded_file($fileData['tmp_name'], $filePath)) {
@@ -67,7 +59,7 @@ class Media extends BaseModel {
         $data = [
             'filename' => $filename,
             'original_name' => $fileData['name'],
-            'file_path' => 'assets/uploads/' . $filename,
+            'file_path' => $relativeDir . $filename,
             'file_type' => $fileType,
             'file_size' => $fileData['size'],
             'mime_type' => $fileData['type'],
@@ -84,7 +76,7 @@ class Media extends BaseModel {
         }
         
         $fullPath = ROOT_PATH . '/public/' . $file['file_path'];
-        if (file_exists($fullPath)) {
+        if (str_starts_with($file['file_path'], 'assets/uploads/sites/' . TenantContext::id() . '/') && !str_contains($file['file_path'], '..') && file_exists($fullPath)) {
             unlink($fullPath);
         }
         
