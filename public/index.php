@@ -53,6 +53,7 @@ if (TenantContext::editorMode() === 'website_first') {
         if(in_array($relative,['/admin','/admin/dashboard','/admin/website','/admin/settings','/admin/theme','/admin/hero','/admin/about','/admin/footer','/admin/navigation','/admin/pages'],true)) {
             (new User())->requireAuth();header('Location: '.url());exit;
         }
+        if($relative==='/manage'){(new BuilderController())->manage();exit;}
         if($relative==='/edit'){(new BuilderController())->show((string)($_GET['page']??'home'),true);exit;}
         $pageKey=trim($relative,'/');if($pageKey==='')$pageKey='home';
         if(in_array($pageKey,['home','about','contact','portfolio','services'],true)) {

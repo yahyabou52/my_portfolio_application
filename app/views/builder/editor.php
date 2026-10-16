@@ -21,3 +21,5 @@
 <iframe id="wfe-preview-frame" title="Draft website device preview"></iframe>
 </dialog>
 <script src="<?= asset('js/wfe-structure.js') ?>" defer></script>
+
+<?php require_once ROOT_PATH.'/app/core/builder/CollectionStore.php';require __DIR__.'/collections.php'; ?>

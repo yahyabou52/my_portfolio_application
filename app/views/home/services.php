@@ -71,7 +71,7 @@ $faqSubtitle = WebsiteContent::get('services.heading.faqSubtitle', $faqSection['
                     }
                     ?>
                     <div class="col-lg-6 mb-5" data-aos="fade-up" data-aos-delay="<?= (int)$index * 100 ?>">
-                        <div class="service-card" id="<?= htmlspecialchars($serviceId) ?>">
+                        <div class="service-card"<?php if(!empty($wfeEditing)): ?> data-collection-type="services" data-collection-item="<?= (int)$service['id'] ?>"<?php endif; ?> id="<?= htmlspecialchars($serviceId) ?>">
                             <div class="service-icon">
                                 <i class="bi <?= htmlspecialchars($icon) ?>"></i>
                             </div>
@@ -314,7 +314,7 @@ $faqSubtitle = WebsiteContent::get('services.heading.faqSubtitle', $faqSection['
                 $rating = (int)($testimonial['rating'] ?? 5);
                 ?>
                 <div class="col-lg-4 mb-4" data-aos="fade-up" data-aos-delay="<?= (int)$index * 100 ?>">
-                    <div class="testimonial-card">
+                    <div class="testimonial-card"<?php if(!empty($wfeEditing)): ?> data-collection-type="testimonials" data-collection-item="<?= (int)$testimonial['id'] ?>"<?php endif; ?>>
                         <div class="testimonial-content">
                             <?php if ($rating > 0): ?>
                                 <div class="testimonial-stars mb-3">

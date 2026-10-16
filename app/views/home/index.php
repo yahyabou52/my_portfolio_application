@@ -171,7 +171,7 @@ $ctaSecondaryUrl = ($ctaSecondaryText !== '' && $ctaSecondaryUrlRaw !== '')
                     $liveUrl = $project['project_url'] ?? '';
                     ?>
                     <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="<?= (int)$index * 100 ?>">
-                        <div class="project-card">
+                        <div class="project-card"<?php if(!empty($wfeEditing)): ?> data-collection-type="projects" data-collection-item="<?= (int)$project['id'] ?>"<?php endif; ?>>
                             <div class="project-image">
                                 <img src="<?= htmlspecialchars($projectImage) ?>"
                                      alt="<?= htmlspecialchars($project['title'] ?? 'Project') ?>"
@@ -265,7 +265,7 @@ $ctaSecondaryUrl = ($ctaSecondaryText !== '' && $ctaSecondaryUrlRaw !== '')
                     }
                     ?>
                     <div class="col-lg-6 mb-4" data-aos="fade-up" data-aos-delay="<?= (int)$index * 100 ?>">
-                        <div class="service-card" id="service-<?= htmlspecialchars($service['id']) ?>">
+                        <div class="service-card"<?php if(!empty($wfeEditing)): ?> data-collection-type="services" data-collection-item="<?= (int)$service['id'] ?>"<?php endif; ?> id="service-<?= htmlspecialchars($service['id']) ?>">
                             <div class="service-icon">
                                 <i class="bi <?= htmlspecialchars($service['icon'] ?? 'bi-lightning-charge') ?>"></i>
                             </div>
@@ -331,7 +331,7 @@ $ctaSecondaryUrl = ($ctaSecondaryText !== '' && $ctaSecondaryUrlRaw !== '')
                             <h4 class="skill-title"><?= htmlspecialchars($categoryName ?? 'Skillset') ?></h4>
                             <div class="skill-list">
                                 <?php foreach (array_slice($skills, 0, 8) as $skill): ?>
-                                    <span class="skill-item">
+                                    <span class="skill-item"<?php if(!empty($wfeEditing)): ?> data-collection-type="skills" data-collection-item="<?= (int)$skill['id'] ?>"<?php endif; ?>>
                                         <?= htmlspecialchars($skill['skill_name'] ?? $skill['name'] ?? '') ?>
                                         <?php if (!empty($skill['proficiency_level'])): ?>
                                             <small class="text-muted"><?= (int)$skill['proficiency_level'] ?>%</small>
@@ -370,7 +370,7 @@ $ctaSecondaryUrl = ($ctaSecondaryText !== '' && $ctaSecondaryUrlRaw !== '')
                     $rating = (int)($testimonial['rating'] ?? 5);
                     ?>
                     <div class="col-lg-4 mb-4" data-aos="fade-up" data-aos-delay="<?= (int)$index * 100 ?>">
-                        <div class="testimonial-card">
+                        <div class="testimonial-card"<?php if(!empty($wfeEditing)): ?> data-collection-type="testimonials" data-collection-item="<?= (int)$testimonial['id'] ?>"<?php endif; ?>>
                             <div class="testimonial-content">
                                 <?php if ($rating > 0): ?>
                                     <div class="testimonial-stars mb-3">

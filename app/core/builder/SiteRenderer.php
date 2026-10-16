@@ -32,7 +32,7 @@ final class SiteRenderer {
         $presentation=$document['presentation']??LegacyViewData::capture($this->db);
         $document['presentation']=$presentation;
         return WebsiteContent::using($presentation['values'],function()use($document,$pageKey,$page,$editing,$owner,$controls){
-            $data=LegacyViewData::data($this->db,$document,$pageKey);
+            $data=LegacyViewData::data($this->db,$document,$pageKey);$data['wfeEditing']=$editing&&$controls&&TenantContext::editorMode()==='website_first';
             $views=['home'=>'home/index','about'=>'home/about','portfolio'=>'portfolio/index','contact'=>'contact/index','services'=>'home/services'];
             // Existing migrated pages preserve every original section and their local scripts.
             if(!empty($document['compatibility'])){
@@ -40,9 +40,9 @@ final class SiteRenderer {
                 $content=WebsiteContent::orderSections($content);
             }else{
                 $sources=[];
-                foreach(['home','about','contact','portfolio'] as $source){$sourceData=LegacyViewData::data($this->db,$document,$source);$sources+=self::sections($this->view($views[$source],$sourceData));}
+                foreach(['home','about','contact','portfolio'] as $source){$sourceData=LegacyViewData::data($this->db,$document,$source);$sourceData['wfeEditing']=$editing&&$controls&&TenantContext::editorMode()==='website_first';$sources+=self::sections($this->view($views[$source],$sourceData));}
                 $sections=$page['sections'];usort($sections,fn($a,$b)=>$a['order']<=>$b['order']);$content='';
-                $map=['hero'=>'home.section.hero-section','about'=>'about.section.about-hero','projects'=>'home.section.featured-work-section','skills'=>'home.section.skills-section','experience'=>'about.section.experience-section','contact'=>'contact.section.contact-content'];
+                $map=['hero'=>'home.section.hero-section','about'=>'about.section.about-hero','projects'=>'home.section.featured-work-section','skills'=>'home.section.skills-section','experience'=>'about.section.experience-section','contact'=>'contact.section.contact-content','services'=>'home.section.services-section','testimonials'=>'home.section.testimonials-section'];
                 foreach($sections as $section){
                     if(!$section['visible'])continue;
                     if(isset(SectionRegistry::get($section['type'])['collection'])&&!$this->collections($section['type']))continue;

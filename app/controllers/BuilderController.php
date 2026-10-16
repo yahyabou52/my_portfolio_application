@@ -6,6 +6,7 @@ require_once ROOT_PATH.'/app/core/builder/BuilderStore.php';
 require_once ROOT_PATH.'/app/core/builder/SiteRenderer.php';
 require_once ROOT_PATH.'/app/core/builder/EditableFields.php';
 require_once ROOT_PATH.'/app/core/builder/DraftStructure.php';
+require_once ROOT_PATH.'/app/core/builder/CollectionStore.php';
 final class BuilderController {
     public static function actor(): array {
         $user=(new User())->getCurrentUser();
@@ -20,6 +21,7 @@ final class BuilderController {
         try{
             $db=Database::getInstance()->getConnection();$store=new BuilderStore($db,TenantContext::id());$actor=self::actor();$store->authorize($actor);
             if(TenantContext::editorMode()!=='website_first')throw new RuntimeException('This site still uses the legacy editor.',409);
+            if($action==='collection-list'&&$_SERVER['REQUEST_METHOD']==='GET'){echo json_encode((new CollectionStore($db))->listing((string)($_GET['type']??'')),JSON_THROW_ON_ERROR);return;}
             if($action==='state'&&$_SERVER['REQUEST_METHOD']==='GET'){
                 $state=$store->state();$draft=$this->document($store->draft($actor));$live=$this->document($store->published());
                 echo json_encode(['revision'=>(int)$state['revision'],'document'=>$draft,'published'=>SiteDocument::encode($draft)===SiteDocument::encode($live)],JSON_THROW_ON_ERROR);return;
@@ -34,6 +36,7 @@ final class BuilderController {
             }
             if((int)($_SERVER['CONTENT_LENGTH']??0)>1048576)throw new InvalidArgumentException('Request is too large.');
             $input=json_decode(file_get_contents('php://input'),true,512,JSON_THROW_ON_ERROR);
+            if($action==='collection-save'){if(!is_array($input))throw new InvalidArgumentException('Invalid item.');echo json_encode((new CollectionStore($db))->save($input),JSON_THROW_ON_ERROR);return;}
             if(!is_array($input)||!is_int($input['revision']??null))throw new InvalidArgumentException('Missing draft revision.');
             $revision=$input['revision'];
             if($action==='save'){
@@ -60,6 +63,13 @@ final class BuilderController {
             http_response_code($status);echo json_encode(['error'=>$status===500?'The change could not be saved. Please retry.':$e->getMessage(),'code'=>$status===409?'conflict':'error']);
             if($status===500)error_log($e->getMessage());
         }
+    }
+    public function manage(): void {
+        header('Cache-Control: private, no-store');
+        try{$db=Database::getInstance()->getConnection();(new BuilderStore($db,TenantContext::id()))->authorize(self::actor());}
+        catch(Throwable $e){http_response_code(403);echo 'Only the website owner can manage content.';return;}
+        $messages=$db->query('SELECT * FROM messages ORDER BY created_at DESC LIMIT 200')->fetchAll(PDO::FETCH_ASSOC);
+        require ROOT_PATH.'/app/views/builder/manage.php';
     }
     public function show(string $pageKey='home',bool $editing=false): void {
         $db=Database::getInstance()->getConnection();$store=new BuilderStore($db,TenantContext::id());$actor=self::actor();$owner=false;

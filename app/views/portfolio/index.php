@@ -50,7 +50,7 @@
             <div class="row">
                 <?php foreach ($projects as $index => $project): ?>
                     <div class="col-lg-4 col-md-6 mb-5" data-aos="fade-up" data-aos-delay="<?= (int)$index * 100 ?>">
-                        <div class="portfolio-item">
+                        <div class="portfolio-item"<?php if(!empty($wfeEditing)): ?> data-collection-type="projects" data-collection-item="<?= (int)$project['id'] ?>"<?php endif; ?>>
                             <div class="portfolio-image">
                                 <?php $projectImage = !empty($project['main_image_path']) ? media_url($project['main_image_path']) : asset('images/placeholder.svg'); ?>
                                 <img src="<?= htmlspecialchars($projectImage) ?>"

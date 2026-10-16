@@ -38,7 +38,7 @@ class Service extends BaseModel {
     }
 
     public function getHomepageFeatured(): array {
-        $services = $this->where(['homepage_featured' => 1], 'homepage_sort_order ASC, title ASC');
+        $services = $this->where(TenantContext::editorMode()==='website_first'?['homepage_featured'=>1,'status'=>'published']:['homepage_featured' => 1], 'homepage_sort_order ASC, title ASC');
         return $this->attachFeatures($services);
     }
 

@@ -53,6 +53,7 @@ retry.addEventListener('click',()=>{retries=0;flush().catch(()=>{});});
 reload.addEventListener('click',()=>{if(confirm('Reload the latest saved draft? Unsaved local edits will be lost.')){pending.clear();location.reload();}});
 window.addEventListener('beforeunload',event=>{if(pending.size||inFlight){event.preventDefault();event.returnValue='';}});
 for(const node of schemaNodes()){
+ if(node.closest('[data-collection-item]'))continue;
  const kind=node.dataset.editKind;
  node.setAttribute('tabindex','0');
  if(kind==='text'){

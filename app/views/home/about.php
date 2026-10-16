@@ -114,7 +114,7 @@ $hasTimelineContent = !empty($timelineGroups['experience']['items']) || !empty($
                                         $tags = [];
                                     }
                                     ?>
-                                    <div class="timeline-item" data-aos="fade-up" data-aos-delay="<?= $delay ?>">
+                                    <div class="timeline-item"<?php if(!empty($wfeEditing)): ?> data-collection-type="experience" data-collection-item="<?= (int)$item['id'] ?>"<?php endif; ?> data-aos="fade-up" data-aos-delay="<?= $delay ?>">
                                         <div class="timeline-marker<?= $groupKey === 'education' ? ' timeline-marker-education' : '' ?>"></div>
                                         <div class="timeline-content">
                                             <div class="timeline-header">
@@ -176,7 +176,7 @@ $hasTimelineContent = !empty($timelineGroups['experience']['items']) || !empty($
                         <h4 class="skill-group-title mb-4"><?= htmlspecialchars($categoryName ?? 'Skills') ?></h4>
                         <div class="skill-bars">
                             <?php foreach ($skillsGroup as $skill): ?>
-                                <div class="skill-bar mb-3">
+                                <div class="skill-bar mb-3"<?php if(!empty($wfeEditing)): ?> data-collection-type="skills" data-collection-item="<?= (int)$skill['id'] ?>"<?php endif; ?>>
                                     <div class="skill-info">
                                         <span class="skill-name"><?= htmlspecialchars($skill['skill_name'] ?? $skill['name'] ?? '') ?></span>
                                         <?php if (!empty($skill['proficiency_level'])): ?>
@@ -218,7 +218,7 @@ $hasTimelineContent = !empty($timelineGroups['experience']['items']) || !empty($
                 $rating = (int)($testimonial['rating'] ?? 5);
                 ?>
                 <div class="col-lg-4 mb-4" data-aos="fade-up" data-aos-delay="<?= (int)$index * 100 ?>">
-                    <div class="testimonial-card">
+                    <div class="testimonial-card"<?php if(!empty($wfeEditing)): ?> data-collection-type="testimonials" data-collection-item="<?= (int)$testimonial['id'] ?>"<?php endif; ?>>
                         <div class="testimonial-content">
                             <?php if ($rating > 0): ?>
                                 <div class="testimonial-stars mb-3">
