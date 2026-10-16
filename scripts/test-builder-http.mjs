@@ -16,11 +16,11 @@ const a=new Client(),b=new Client(),visitor=new Client();
 for(const [client,account] of [[a,accounts[0]],[b,accounts[1]]]){
  const login=await client.request('/s/'+account.slug+'/admin/login');assert.equal(login.status,200);
  const result=await client.request('/s/'+account.slug+'/admin/login',{csrf_token:token(login.text),username:account.email,password:account.password});
- assert.equal(result.status,200);assert.ok(result.text.includes('owner-edit'),'Owner sees floating edit control');
+ assert.equal(result.status,200);assert.ok(result.text.includes('data-owner-edit'),'Owner sees floating edit control');
 }
 const site='/s/'+accounts[0].slug;
-const live=await visitor.request(site);assert.equal(live.status,200);assert.ok(!live.text.includes('DRAFT_SECRET_HTTP'));assert.ok(!live.text.includes('owner-edit'));assert.ok(!live.text.includes('builder-bar'));assert.ok(!live.text.includes('section-projects'));
-const draft=await a.request(site+'/edit');assert.equal(draft.status,200);assert.ok(draft.text.includes('DRAFT_SECRET_HTTP'));assert.ok(draft.text.includes('Add your first project'));
+const live=await visitor.request(site);assert.equal(live.status,200);assert.ok(!live.text.includes('DRAFT_SECRET_HTTP'));assert.ok(!live.text.includes('owner-edit'));assert.ok(!live.text.includes('wfe-config'));assert.ok(!live.text.includes('section-projects'));
+const draft=await a.request(site+'/edit');assert.equal(draft.status,200);assert.ok(draft.text.includes('DRAFT_SECRET_HTTP'));assert.ok(draft.text.includes('wfe-config'));
 assert.equal((await visitor.request(site+'/edit')).status,403);
 assert.equal((await b.request(site+'/edit')).status,403);
 assert.ok(!(await visitor.request(site+'?preview=1&draft=1')).text.includes('DRAFT_SECRET_HTTP'));

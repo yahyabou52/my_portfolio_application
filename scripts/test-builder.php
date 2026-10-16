@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+ob_start();
 require_once __DIR__.'/../config/config.php';
 require_once ROOT_PATH.'/app/core/builder/TenantMigration.php';
 require_once ROOT_PATH.'/app/core/builder/BuilderStore.php';
@@ -92,7 +93,7 @@ foreach(['a','b'] as $letter){
     foreach(['projects','skills','timeline_items','testimonials','services'] as $table)check((int)$tenant->query('SELECT COUNT(*) FROM '.$table)->fetchColumn()===0,'New website has no sample '.$table);
     $doc=json_decode($tenantState['draft_json'],true);check($doc['profile']['email']==='','Account email is not silently published as contact information');
     $empty=(new SiteRenderer($tenant))->render($doc,'home',false,false);$editing=(new SiteRenderer($tenant))->render($doc,'home',true,true);
-    check(!str_contains($empty,'section-projects')&&str_contains($editing,'Add your first project'),'Empty collections hidden for visitors and explained to owners');
+    check(!str_contains($empty,'featured-work-section')&&!str_contains($editing,'featured-work-section'),'Empty collection markup is omitted without inventing section layouts');
     if($letter==='a'){
         $owner=['id'=>(int)$tenantState['owner_id'],'site_id'=>(int)$created['id'],'role'=>'superadmin'];$doc['profile']['intro']='DRAFT_SECRET_HTTP';
         (new BuilderStore($tenant,(int)$created['id']))->saveDraft($owner,1,$doc);

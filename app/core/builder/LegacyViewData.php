@@ -4,7 +4,7 @@ require_once ROOT_PATH.'/app/core/ContentRepository.php';
 require_once ROOT_PATH.'/app/core/WebsiteContent.php';
 final class LegacyViewData {
     public static function capture(PDO $db): array {
-        return Database::using($db,function(){
+        try { return Database::using($db,function(){
             $repo=new ContentRepository();$global=$repo->getGlobalData();
             unset($global['activeServices'],$global['socialLinks'],$global['contactSettings']);
             foreach(['site_title','site_tagline'] as $key)unset($global['siteSettings'][$key]);
@@ -17,7 +17,11 @@ final class LegacyViewData {
             }
             $values=[];foreach(Database::getInstance()->getConnection()->query('SELECT setting_key,setting_value FROM site_settings')->fetchAll() as $row)$values[$row['setting_key']]=$row['setting_value'];
             return ['global'=>$global,'hero'=>$hero,'about'=>$about,'pages'=>$pages,'values'=>$values];
-        });
+        }); } catch(PDOException $error) {
+            if(!in_array($error->getCode(),['42S02','42S22'],true))throw $error;
+            // Sparse legacy sites remain blocked from activation; preserve their raw tables in the export.
+            return ['global'=>['siteSettings'=>[],'footerSettings'=>[],'navigationMenu'=>[]],'hero'=>[],'about'=>[],'pages'=>[],'values'=>[],'incomplete'=>true];
+        }
     }
     public static function data(PDO $db,array $doc,string $pageKey): array {
         return Database::using($db,function()use($doc,$pageKey){

@@ -1,0 +1,27 @@
+{
+  "passed": true,
+  "dimensions": [
+    {
+      "width": 1440,
+      "sectionDimensionsEqual": true
+    },
+    {
+      "width": 768,
+      "sectionDimensionsEqual": true
+    },
+    {
+      "width": 390,
+      "sectionDimensionsEqual": true
+    }
+  ],
+  "checks": [
+    "draft privacy",
+    "publish UI",
+    "discard UI",
+    "undo/redo",
+    "conflict UI",
+    "button validation",
+    "real image upload",
+    "visitor assets"
+  ]
+}

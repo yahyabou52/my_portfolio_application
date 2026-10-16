@@ -42,6 +42,7 @@ if (TenantContext::editorMode() === 'website_first') {
     $requestPath=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH);
     $sitePath=rtrim(parse_url(BASE_URL,PHP_URL_PATH)?:'', '/');
     $relative=substr($requestPath,strlen($sitePath))?:'/';
+    if(preg_match('#^/editor-api/([a-z-]+)$#',$relative,$match)){(new BuilderController())->api($match[1]);exit;}
     if(str_starts_with($relative,'/admin/') && $_SERVER['REQUEST_METHOD']==='POST' && $relative!=='/admin/login') {
         verify_csrf();
         try {(new BuilderStore(Database::getInstance()->getConnection(),TenantContext::id()))->authorize(BuilderController::actor());}

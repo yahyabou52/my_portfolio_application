@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/SiteDocument.php';
 require_once __DIR__.'/LegacyViewData.php';
+require_once __DIR__.'/EditableFields.php';
 final class SiteRenderer {
     public function __construct(private PDO $db) {}
     protected function getFlash(?string $key=null) {return $key?($_SESSION['flash'][$key]??[]):($_SESSION['flash']??[]);}
@@ -53,8 +54,17 @@ final class SiteRenderer {
             }
             $content=preg_replace_callback('/<form\b[^>]*>/i',fn($m)=>$m[0].'<input type="hidden" name="csrf_token" value="'.htmlspecialchars(csrf_token(),ENT_QUOTES).'">',$content);
             $data['content']=$content;
-            // No editor markup or editor assets are emitted during the parity gate.
-            return $this->view('layouts/main',$data);
+            $html=$this->view('layouts/main',$data);
+            if($editing && TenantContext::editorMode()==='website_first') {
+                $html=EditableFields::annotate($html,$document);
+                $store=new BuilderStore($this->db,TenantContext::id());$state=$store->state();$live=$store->published();$live['presentation']??=$document['presentation'];
+                $values=[];foreach(EditableFields::schema() as $id=>$spec)$values[$id]=EditableFields::value($document,$spec);
+                $boot=['api'=>url('editor-api/'),'csrf'=>csrf_token(),'revision'=>(int)$state['revision'],'values'=>$values,'published'=>SiteDocument::encode($document)===SiteDocument::encode($live)];
+                $html=str_replace('</body>',$this->view('builder/editor',['boot'=>$boot]).'</body>',$html);
+            }elseif($owner&&!$editing){
+                $html=str_replace('</body>','<a data-owner-edit class="btn btn-primary position-fixed bottom-0 end-0 m-3" style="z-index:1050" href="'.htmlspecialchars(url('edit?page='.$pageKey),ENT_QUOTES).'">Edit website</a></body>',$html);
+            }
+            return $html;
         });
     }
 }
