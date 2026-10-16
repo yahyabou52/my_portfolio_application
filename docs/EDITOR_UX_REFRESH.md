@@ -29,3 +29,8 @@ Editor surfaces inherit the public site's colors, fonts, border and background t
 The on-page Move block handle supports pointer dragging with insertion lines and edge scrolling. Tap/click the handle to place the block before or after another section; arrow keys move it one step. Escape cancels dragging. Blocks remain in responsive document flow, with no free-positioned coordinates.
 
 The owner-checked, revision-checked structure endpoint validates both source and destination section IDs and applies placement in one draft save, including preserved legacy pages. Hidden sections remain in the ordered list. Public ordering changes only after Publish. Browser coverage includes actual dragging, mobile placement, keyboard movement, no navigation and draft isolation.
+
+## Movable editor panels
+Both the main editor dock and contextual section toolbar have a grip for dragging the interface around the viewport. This moves only editor chrome; website blocks and draft data are untouched. Positions are stored per site in browser local storage, clamped to the viewport, and restored after refresh. Arrow keys move a focused grip; Home or double-click resets it. Escape cancels a pointer drag.
+
+scripts/test-panel-drag.mjs checks independent movement, retained contextual position, persistence, keyboard/reset behavior, mobile viewport bounds, no navigation and unchanged section dimensions.

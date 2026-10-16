@@ -92,3 +92,8 @@
 .wfe-drop-marker[hidden]{display:none}
 .wfe-sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 @media(max-width:600px){.wfe-section-tools{max-width:calc(100vw - 16px)}.wfe-section-tools button{font-size:10px;padding:6px}}
+
+.wfe-panel-grip{touch-action:none;cursor:grab!important;flex-shrink:0;font-size:20px!important;line-height:1!important;padding:6px!important;color:var(--primary-color)!important}
+.wfe-panel-grip:active{cursor:grabbing!important}
+.wfe-dock-heading #wfe-toggle{margin-right:auto}
+.wfe-section-tools .wfe-panel-grip{display:block!important}

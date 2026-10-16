@@ -1,6 +1,6 @@
 <link rel="stylesheet" href="<?= asset('css/wfe-editor.css') ?>">
 <div class="wfe-toolbar" role="toolbar" aria-label="Website editor">
-<div class="wfe-dock-heading"><button type="button" id="wfe-toggle" aria-expanded="true" aria-controls="wfe-actions"><span class="wfe-brand-mark" aria-hidden="true">✦</span> Website editor <span class="wfe-chevron" aria-hidden="true">⌃</span></button><span class="wfe-edit-hint">Click anything on your page to edit</span></div>
+<div class="wfe-dock-heading"><button type="button" class="wfe-panel-grip" data-wfe-panel="editor" aria-label="Move editor toolbar" title="Drag to move. Arrow keys move; Home resets position.">⠿</button><button type="button" id="wfe-toggle" aria-expanded="true" aria-controls="wfe-actions"><span class="wfe-brand-mark" aria-hidden="true">✦</span> Website editor <span class="wfe-chevron" aria-hidden="true">⌃</span></button><span class="wfe-edit-hint">Click anything on your page to edit</span></div>
 <div id="wfe-actions">
 <div class="wfe-tools"><button type="button" id="wfe-sections"><span aria-hidden="true">▤</span> Sections</button><button type="button" id="wfe-appearance"><span aria-hidden="true">◐</span> Appearance</button><button type="button" id="wfe-content"><span aria-hidden="true">＋</span> Content</button><button type="button" id="wfe-pages">Pages</button><button type="button" id="wfe-preview">Preview</button></div>
 <div class="wfe-publish-group"><div class="wfe-save-state"><span id="wfe-status" role="status" aria-live="polite">Saved draft</span><span id="wfe-publication"></span></div><button type="button" id="wfe-publish">Publish</button></div>
@@ -27,5 +27,6 @@
 <script src="<?= asset('js/wfe-structure.js') ?>" defer></script>
 <script src="<?= asset('js/wfe-context.js') ?>" defer></script>
 <script src="<?= asset('js/wfe-move.js') ?>" defer></script>
+<script src="<?= asset('js/wfe-panels.js') ?>" defer></script>
 
 <?php require_once ROOT_PATH.'/app/core/builder/CollectionStore.php';require __DIR__.'/collections.php'; ?>
